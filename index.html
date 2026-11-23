@@ -1,0 +1,1536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TOC Wall — default state</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/*
+  TOC WALL — default state only (no incident, nothing flying).
+  Everything is sized in rem; root font-size tracks the viewport so the same
+  layout reads on TOC1 (4x4 of 55" = one 4K surface) and TOC2 (one 86" 4K).
+  1rem = 10px at 1920x1080, 20px at 3840x2160.
+*/
+:root{
+  /* Campus Guardian Angel / TOC App design system tokens, remapped onto this file's own variables (no tokens.css, no component bundle) */
+  --bg:#211a1b;      /* Background-Neutral-Surface (page) */
+  --panel:#2a2223;   /* tiles: a slightly lighter tone of the #211a1b surface (custom, not a system token; replaces Elevation-1 #33292a) */
+  --panel-2:#4d3f3f; /* Background-Neutral-Elevation-2 */
+  --line:#ffffff33;  /* Border-Light-Low-Emphasis: decorative hairline, never meaningful on its own */
+  --tile-line:#ffffff1a; /* tile outer border: 1px, half the --line opacity so tile edges sit quieter than the dividers inside them (raised panel colour already separates tiles) */
+  --divider:#ffffff1a;   /* hairline dividers inside tiles (rows, cells, footers): 10%, same as the tile border, quieter than --line, which stays for header dividers, chip outlines and controls */
+  --ink:#ffffff;     /* Text-On-dark-Highest-emphasis */
+  --mute:#d3d2d2;    /* Text-Light-gray (secondary) */
+  --dim:#b8b4b4;     /* Text-Gray (tertiary / meta) */
+  --ok:#00b933;      /* Border-Semantic-Success */
+  --warn:#ffbe04;    /* no general warning token in the system: nearest is Dashboard-Status-Background-Verification */
+  --bad:#ef4141;     /* Basic-Background-Danger-Default / Border-Semantic-Error: escalating states only */
+  --info:#59a8ff;    /* Text-Brand-Highest-emphasis: page background or Elevation-1 only, never Elevation-3/4 */
+  --brand:#1b64f5;   /* Basic-Background-Brand-Default */
+  --brand-hover:#297fff; /* Basic-Background-Brand-Hover */
+  --sea:#211a1b; --land:#33292a; --land-edge:#594a4a; /* map: Surface / Elevation-1 / Elevation-3 */
+  /* incident stages (Dashboard-Status-Background-*): filled stage badge + grid frame */
+  --st-ver:#ffbe04; --st-res:#dc2626; --st-med:#297fff; --st-reu:#227c4d;
+  --head:"Titillium Web","Helvetica Neue",Arial,sans-serif; /* one family, two weights: 400 body, 600 headings/buttons */
+  --body:"Titillium Web","Helvetica Neue",Arial,sans-serif;
+  /* Type scale. The system's px are 4K wall pixels: 1rem = 20px at 3840x2160 (10px at 1080p). 24px floor = 1.2rem. */
+  --fs-cap:1.2rem; --lh-cap:1.4rem;  /* Caption / Caption-Semibold 24/28 - smallest step */
+  --fs-b3:1.4rem;  --lh-b3:2rem;     /* b3 28/40 - dense panels */
+  --fs-b2:1.6rem;  --lh-b2:2rem;     /* b2 32/40 */
+  --fs-b1:1.8rem;  --lh-b1:2.4rem;   /* b1 36/48 - default body */
+  --fs-btn:1.8rem; --lh-btn:2rem;    /* Button 36/40 */
+  --fs-note:2rem;  --lh-note:3.2rem; /* Notification 40/64 - high-attention single values */
+  --fs-title:1.6rem; /* tile titles 32px (raised from H6 28px on request) */
+  --fs-h6:1.8rem;  --lh-h6:2rem;     /* H6: raised from the system's 28px to 36px on request, so in-tile headings read bigger than tile titles */
+  /* H2-H5: APPROXIMATION interpolated between H6 and H1 - not sourced from the real system */
+  --fs-h5:1.7rem; --fs-h4:2rem; --fs-h3:2.3rem; --fs-h2:2.6rem;
+  --fs-h1:2.8rem;  --lh-h1:3.2rem;   /* H1 56/64 - largest step */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+b,strong,h1,h2,h3,h4,h5,h6{font-weight:600} /* never bold/black: the system loads 400 + 600 only */
+html{font-size:min(calc(100vw/192),calc(100vh/108))}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:var(--fs-b1);line-height:var(--lh-b1);
+  width:100vw;height:100vh;overflow:hidden;display:grid;grid-template-rows:7.2rem 1fr 2.8rem;gap:1rem;padding:1rem;
+  font-variant-numeric:tabular-nums}
+
+/* ---------- brand header (persistent identity chrome, both states; in Active it also carries the incident: trigger, campus (address), stage + duration) ---------- */
+#brand{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 2.4rem;min-width:0} /* min-width:0: never wider than the screen, so a long incident address truncates instead */ /* 1.2rem above + below the 4.8rem content row (header row = 7.2rem) */
+#brand .logo{height:4.08rem;width:auto;display:block}
+/* left group: logo | divider | identity tag (TOC of the team on shift), 1.6rem (16px at 1080p) between each */
+#brand .lgrp{display:flex;align-items:center;gap:2rem} /* logo | 20px | divider | 20px | TOC tag */
+#brand .dv{width:1px;height:3rem;background:var(--line)}
+#toc-badge{font-family:var(--head);font-weight:600;font-size:var(--fs-b1);line-height:1;letter-spacing:.02em;color:var(--ink);position:relative;top:-.38rem} /* same cap height as the logo wordmark; lifted so both share one baseline (measured) */
+#brand .bgrp{display:flex;align-items:center;gap:2rem}
+#net-slot:empty{display:none} /* no outage chip -> no stray gap before the stage badge */
+#brand .badge{font-family:var(--head);font-weight:600;font-size:var(--fs-b1);letter-spacing:.02em;border:1px solid var(--line);border-radius:2rem;padding:.2rem 1.8rem .3rem;background:var(--bg)}
+#brand .badge span{color:var(--mute);font-weight:400}
+/* stage badge, both states: top-right corner of the header (Active adds the running duration to its left) */
+#stage-badge .chip{font-family:var(--head);font-weight:600;font-size:var(--fs-btn);line-height:1;padding:.5rem 1.6rem .6rem;gap:.9rem}
+/* Active stage badge: solid Dashboard-Status fill, white text (dark text on Verification yellow for contrast); the word is always shown */
+#stage-badge .chip.st-ver{background:var(--st-ver);border-color:var(--st-ver);color:var(--bg)}#stage-badge .chip.st-res{background:var(--st-res);border-color:var(--st-res);color:var(--ink)}#stage-badge .chip.st-med{background:var(--st-med);border-color:var(--st-med);color:var(--ink)}#stage-badge .chip.st-reu{background:var(--st-reu);border-color:var(--st-reu);color:var(--ink)}
+#stage-badge{display:flex;align-items:center}
+#stage-badge .chip #dur{font:inherit;color:inherit;font-variant-numeric:tabular-nums;padding-left:.9rem;border-left:1px solid color-mix(in srgb,currentColor 40%,transparent)} /* Active: running incident duration inside the stage badge, after a hairline divider */
+/* Weather strip (header, between the TOC tag and the outage chip / stage badge): every campus town, news-ticker crawl right-to-left.
+   Track holds the list twice and slides -50% so the loop is seamless; JS sets the duration from the width so speed is constant.
+   Each town: name, icon, temperature; 1px divider between towns. Active: one static item. */
+#wx-strip{flex:1;min-width:0;width:0;align-self:stretch; /* width:0 so the long track never widens the header (the body grid sizes rows to content) */display:flex;align-items:center;overflow:hidden;margin:0 3.2rem;mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent)}
+#wx-strip.static{flex:1 0 auto;width:auto;justify-content:flex-end;mask-image:none;margin-right:0} /* Active: keeps its own width and acts as the spacer, never squeezed */
+.wx-track{flex:none;display:flex;align-items:center;width:max-content;animation:wxCrawl 120s linear infinite;will-change:transform}
+#wx-strip.static .wx-track{animation:none}
+@keyframes wxCrawl{to{transform:translateX(-50%)}}
+.wx-i{display:flex;align-items:center;gap:1rem;padding:0 2.4rem;border-left:1px solid var(--line);white-space:nowrap;font-size:var(--fs-b1);line-height:1;color:var(--mute)}
+#wx-strip.static .wx-i{border-left:0;padding:0} /* Active: no side padding, so a full header gives the address the room */
+.wx-i b,.wx-i em{font-family:var(--head);font-weight:600;font-style:normal;font-size:var(--fs-b1);color:var(--ink)}
+.wx-i svg{width:2.4rem;height:2.4rem;flex:none;fill:none;stroke:var(--mute);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- header incident group (Active only): | campus (address) | trigger | before the stage badge; same type scale as the weather ---------- */
+#inc-hd[hidden]{display:none}
+#inc-hd{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:2rem;padding:0 2rem; /* 20px either side of every divider */white-space:nowrap} /* the only header item that shrinks: the address truncates first */
+#inc-hd .inc{min-width:0;display:flex;align-items:baseline;gap:.8rem}
+#inc-hd .inc b{flex:none;font-family:var(--head);font-weight:600;font-size:var(--fs-b1);line-height:1;color:var(--ink)}
+#inc-hd .ad{min-width:0;display:flex;font-family:var(--head);font-weight:400;font-size:var(--fs-b1);line-height:1;color:var(--mute)}
+#inc-hd .ad::before{content:"("}#inc-hd .ad::after{content:")"}
+#inc-hd .ad i{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis} /* long address ends "...)" - the closing bracket always shows */
+#inc-hd .trg{flex:none;display:flex;align-items:center;gap:1rem}
+#inc-hd .trg img{width:3.6rem;height:3.6rem;display:block} /* source icon (no source name); type/subtype text beside it where the source has one */
+#inc-hd .trg b{font-family:var(--head);font-weight:600;font-size:var(--fs-b1);line-height:1;color:var(--ink)}
+
+/* ---------- grid ---------- */
+#grid{display:grid;gap:1rem;min-height:0;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr); /* default: 4 equal rows; map spans cols 1-2 x rows 1-3; every cell is used */
+  grid-template-areas:
+   "map map list peer"
+   "map map tz feed"
+   "map map comms rota"
+   "news sites drone sched"}
+/* ACTIVE has its own area map: drone feeds cols 1-2 x rows 1-2; Keyword matches cols 1-2 x rows 3-4; col 3 = Threat status, Channel stats, Local news, Caution notes; col 4 = Suspect information over Shared assets (rows 2-4). No Drone readiness in Active: per-drone detail lives on the feeds. */
+#grid.act{grid-template-rows:repeat(4,1fr);grid-template-areas:
+   "feeds feeds list sus"
+   "feeds feeds stats assets"
+   "kw kw news assets"
+   "kw kw notes assets"}
+/* ACTIVE, alternative layout (footer switch, Active only): no Keyword matches; Suspect information spans cols 3-4 on row 1; Caution notes takes the 2x2 below the feeds */
+#grid.act.alt{grid-template-areas:
+   "feeds feeds sus sus"
+   "feeds feeds list assets"
+   "notes notes stats assets"
+   "notes notes news assets"}
+#grid.act.alt #t-kw{display:none}
+#grid.act.alt #t-suspect .sp{font-size:4rem;padding-bottom:.6rem} /* double-width tile: description 40px (26px in the standard layout); 2 lines for the mock sightings, a 3-line description still fits */
+.tile{background:var(--panel);border:1px solid var(--tile-line);border-radius:.6rem;padding:1.4rem 1.6rem;min-height:0;min-width:0;display:flex;flex-direction:column;overflow:hidden;position:relative}
+/* ONE tile-title style, used by every tile (default + active): small semibold condensed, muted, sentence case; optional dim meta at the right only when it carries data */
+.tile>h2,.half>h2,.pad>h2,#t-map .ttl{font-family:var(--head);font-weight:600;font-size:var(--fs-title);line-height:1;letter-spacing:.03em;color:var(--mute);margin-bottom:.7rem;display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex:none}
+.tile>h2 span,.half>h2 span,.pad>h2 span,#t-map .ttl span{font-family:var(--body);font-weight:400;font-size:var(--fs-cap);letter-spacing:0;color:var(--dim)}
+.tile>h2 span.ok{color:var(--ok)}.tile>h2 span.bad,#t-map .ttl span.bad{color:var(--bad)}.tile>h2 span.warn{color:var(--warn)}
+/* TOC peer status */
+/* Peer status + Planned sites: rows share the space equally (flex:1) with a hairline between them, so content fills the tile and spacing around each divider is equal */
+#peer{flex:1;display:flex;flex-direction:column;min-height:0}
+.prow{flex:1;display:flex;justify-content:space-between;align-items:center;gap:1rem;font-size:2.2rem;line-height:1.25;border-top:1px solid var(--divider)} /* raised on request */
+.prow .chip{font-size:1.7rem}
+.prow:first-child{border-top:0}
+/* Feed & system health: 2x2 scoreboard, value colour = status */
+.health{flex:1;display:grid;grid-template-columns:1fr 1fr}
+.hc{display:flex;flex-direction:column;justify-content:center;gap:.4rem;min-width:0}
+.hc:nth-child(even){padding-left:1.6rem;border-left:1px solid var(--divider)}
+.hc:nth-child(n+3){border-top:1px solid var(--divider)}
+/* HERO FIGURES (Feed & system health, Team rotation, Time zones): deliberately above H1 so wall-critical values stand out - an exception to the type scale */
+.hc b{font-family:var(--head);font-weight:600;font-size:3.6rem;line-height:1;white-space:nowrap;color:var(--ink)} /* data is white; colour is reserved for badge statuses */
+.hc small{font-size:1.8rem;color:var(--mute)} /* data labels under the hero figures (Feed & system health, Drone readiness): raised from Caption on request */
+.hc b .sec{font-family:var(--body);font-weight:400;font-size:var(--fs-b2);color:var(--mute)} /* beacon age ("· 15s") secondary to Fresh / Stale */
+/* Independent comms (default): one row per TOC, rows share the height with a hairline between (same grammar as Planned sites / TOC peer status) */
+#comms{flex:1;display:flex;flex-direction:column;min-height:0}
+.ci{flex:1;display:flex;flex-direction:column;justify-content:center;gap:.4rem;border-top:1px solid var(--divider);min-width:0}
+.ci:first-child{border-top:0}
+.ci .hd{display:flex;justify-content:space-between;align-items:center;gap:1rem}
+.ci .hd b{font-family:var(--head);font-weight:600;font-size:2.4rem;line-height:1.1} /* TOC name */
+.ci .hd .chip{font-size:1.7rem}
+.ci .ln{font-size:2rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ci .ln.m{font-size:1.7rem;color:var(--mute)}.ci .ln.e{color:var(--dim)} /* raised on request */
+#t-map{grid-area:map;padding:0}
+#t-list{grid-area:list}#t-feed{grid-area:feed;padding:0}#t-peer{grid-area:peer}
+#t-drone{grid-area:drone}#t-news{grid-area:news}#t-sites{grid-area:sites;padding:0}#t-comms{grid-area:comms}#t-stats{grid-area:stats}#t-assets{grid-area:assets}#t-kw{grid-area:kw}#t-suspect{grid-area:sus}#t-notes{grid-area:notes}
+#t-rota{grid-area:rota}#t-sched{grid-area:sched;padding:0}
+/* ACTIVE: four drone feeds in a 2x2 (same lanes as Drone readiness). Scoped to #t-feeds; the base .screen look is reused. */
+/* one container: the 2px gap shows the container colour (--divider) as the divider between feeds */
+#t-feeds{grid-area:feeds;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2px;min-height:0;min-width:0;border:1px solid var(--tile-line);border-radius:.6rem;overflow:hidden;background:var(--divider)} /* gap colour = the in-tile divider (10% white over the page), was the brighter --land-edge */
+#t-feeds .fd{position:relative;min-height:0;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:#211a1b}
+#t-feeds .fd .screen{border-radius:inherit;transition:opacity .3s}
+#t-feeds .fd.dim .screen{opacity:.45}
+#t-feeds .fd.frozen .screen::before{animation-play-state:paused}
+/* Shared assets, same language as the drone feeds: one rounded container, 2px dividers, main slot full-width on top + 2x2 below;
+   each slot carries a bottom-left label (asset name + source/age) on a black gradient that fades upward; photos / clips fill the slot (img or muted looping video). */
+#t-assets .ag{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1.5fr 1fr 1fr;gap:2px;border:1px solid var(--tile-line);border-radius:.6rem;overflow:hidden;background:var(--divider)} /* gap colour = the in-tile divider, was --land-edge */
+#t-assets .ag .screen{border-radius:0;min-width:0}
+#t-assets .ag .main{grid-column:1/-1}
+#t-assets .med{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .3s}
+#t-assets .screen.down .med{opacity:.15}
+#t-assets .ah{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:flex-start;gap:.35rem;padding:2.4rem 1.2rem 1rem;background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,.5) 55%,transparent);z-index:2;transition:opacity .3s}
+#t-assets .ah b{font-family:var(--head);font-weight:600;font-size:2rem;line-height:1;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#t-assets .ah span{font-size:1.4rem;line-height:1;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#t-assets .ah>*{max-width:100%} /* cap each label line at the slot width so long names / sources truncate with an ellipsis instead of running past the edge */
+#t-assets .main .ah b{font-size:var(--fs-h4)}
+#t-assets .main .ah span{font-size:var(--fs-cap)}
+#t-assets .ag .screen:not(.main) .fb b{font-size:var(--fs-h5)}
+#t-assets .ag .screen:not(.main) .fb span{display:none}
+ /* Feed layout from the Pilot App feed tile: top-left box letter + pilot (swatch, name) + building/floor;
+   top-right lane · floor; bottom-left state + link chips. Drone ID is deliberately NOT shown (the reference layout has none). */
+#t-feeds .hd{position:absolute;left:1.2rem;top:1.2rem;max-width:calc(100% - 13rem);display:flex;align-items:center;gap:1.1rem;padding:.6rem 1.4rem .6rem .6rem;border-radius:.5rem;background:rgba(0,0,0,.62);z-index:2;transition:opacity .3s}
+#t-feeds .bx{flex:none;width:4.6rem;height:4.6rem;display:flex;align-items:center;justify-content:center;border:2px solid var(--c,var(--land-edge));border-radius:.4rem;font-family:var(--head);font-weight:600;font-size:var(--fs-h3);line-height:1;color:var(--ink)}
+#t-feeds .hd .pi{min-width:0;display:flex;flex-direction:column;gap:.4rem}
+#t-feeds .hd .pn{display:flex;align-items:center;gap:.8rem;font-family:var(--head);font-weight:600;font-size:var(--fs-h4);line-height:1;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#t-feeds .hd .pn i{flex:none;width:1.6rem;height:1rem;border-radius:.15rem;background:var(--c)}
+#t-feeds .hd .lo{font-size:1.5rem;line-height:1;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#t-feeds .hd .free{font-size:var(--fs-b1);color:var(--dim);white-space:nowrap}
+#t-feeds .lf{position:absolute;right:1.2rem;top:1.2rem;padding:.5rem 1rem;border-radius:.4rem;background:rgba(0,0,0,.62);font-family:var(--head);font-weight:600;font-size:var(--fs-h6);line-height:1;color:var(--ink);white-space:nowrap;z-index:2;transition:opacity .3s}
+#t-feeds .bl{position:absolute;left:1.2rem;bottom:1.2rem;display:flex;align-items:center;gap:.6rem;z-index:2;transition:opacity .3s}
+#t-feeds .bl .chip{background:rgba(0,0,0,.62)}
+#t-feeds .vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#211a1b;transition:opacity .3s}
+#t-feeds .screen.down .vid{opacity:.15}
+/* Time zones: CT (Austin HQ, where the team and office are) is the hero; PT/MT/ET are a quiet row with offsets from CT. Weight: CT 600, others 400. */
+#t-tz{grid-area:tz;justify-content:space-between;gap:.6rem}
+.tz-ct b em{font-style:normal;font-size:3.4rem;color:var(--mute);margin-right:1.2rem;vertical-align:.25em}
+.tz-ct b{display:block;font-family:var(--head);font-weight:600;font-size:8.4rem;line-height:.95;letter-spacing:.01em;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.tz-ct b i{font-style:normal;font-size:4.6rem;color:var(--mute);margin-left:.2rem}
+.tz-ct b u,.tz-o div u{text-decoration:none;color:var(--mute)} /* AM / PM: muted, part of the time but quieter than the digits */
+.tz-ct b u{font-size:4.6rem;margin-left:1rem}
+.tz-o div u{margin-left:.5rem}
+.tz-o{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;border-top:1px solid var(--divider);padding-top:1rem}
+.tz-o div{font-family:var(--head);font-weight:400;font-size:var(--fs-b1);line-height:var(--lh-b1);color:var(--mute);white-space:nowrap;font-variant-numeric:tabular-nums}
+.tz-o div span{margin-right:.6rem;color:var(--mute)}
+.tz-o div small{display:block;font-family:var(--body);font-weight:400;font-size:1.5rem;color:var(--mute)}
+.half{background:var(--panel);padding:1.4rem 1.6rem;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.big{font-family:var(--head);font-weight:600;line-height:1}
+.mute{color:var(--mute)}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.chip{display:inline-flex;align-items:center;gap:.7rem;padding:.25rem 1rem .3rem;border-radius:10rem;border:1px solid var(--line);font-size:var(--fs-b3);white-space:nowrap}
+/* status chips: word + colour, no dot (the word always carries the status) */
+.chip.ok{color:var(--ok);border-color:rgba(0,185,51,.35)}
+.chip.bad{color:var(--bad);border-color:rgba(239,65,65,.45)}
+.chip.warn{color:var(--warn);border-color:rgba(255,190,4,.4)}
+.chip.info{color:var(--info);border-color:rgba(89,168,255,.4)}
+.chip.off{color:var(--mute)}
+
+/* ---------- map ---------- */
+#map-wrap{position:relative;flex:1;min-height:0;background:var(--sea);border-radius:.6rem}
+#map-wrap svg{width:100%;height:100%;display:block}
+#t-map .ttl{position:absolute;left:1.6rem;top:1.4rem;z-index:2;margin:0} /* floats over the map: same top-left offset as every tile's padding, zero layout height */
+.legend{position:absolute;left:2rem;bottom:1.6rem;pointer-events:none;z-index:2;display:flex;gap:2rem;font-size:1.5rem;color:var(--mute)} /* legend + refresh time: 15px, raised slightly on request */
+#map-refresh{position:absolute;right:2rem;bottom:1.6rem;z-index:2;font-size:1.5rem;color:var(--mute);pointer-events:none;white-space:nowrap}
+#map-refresh b{color:var(--ink);font-weight:600}
+.legend i{display:inline-block;width:1.4rem;height:1.4rem;border-radius:50%;margin-right:.6rem;vertical-align:-.15rem}
+.land{fill:var(--land);stroke:var(--land-edge);stroke-width:1.2}
+.grat{fill:none;stroke:var(--panel);stroke-width:1}
+/* state borders: same --land-edge token as the national outline but thinner/fainter, so they read as background reference */
+.sb{fill:none;stroke:var(--land-edge);stroke-width:.55;opacity:.65;stroke-linejoin:round;pointer-events:none}
+.sl{fill:var(--mute);font-family:var(--body);font-size:12.5px;text-anchor:middle;opacity:.7;pointer-events:none}
+.dot-live{fill:var(--ok)}.halo{fill:var(--ok);opacity:.16}
+/* disconnected campus: its own marker (never clustered), solid red dot + a ring that scales out and fades; the only moving alarm element on the wall */
+.dis-dot{fill:var(--bad)}.dis-halo{fill:var(--bad);opacity:.18}
+.dis-ring{fill:none;stroke:var(--bad);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:disPulse 1.6s ease-out infinite}
+@keyframes disPulse{from{transform:scale(1);opacity:.9}to{transform:scale(3.2);opacity:0}}
+
+.mk text{font-family:var(--body);fill:var(--ink)}
+/* .mk .badge: numeral inside a marker shape; 600 (no weight above 600 anywhere) */
+.mk .badge{font-family:var(--head);font-weight:600;fill:var(--bg)}
+
+/* ---------- campus list ---------- */
+/* shared auto-scroll box (see fillList / scrollList): bottom fade only while it scrolls; --seam = space between the two looping copies */
+.autoscroll{flex:1;min-height:0;overflow:hidden;position:relative;mask-image:linear-gradient(#000 88%,transparent)}
+.autoscroll.still{mask-image:none}
+.autoscroll .copy{padding:calc(var(--seam,1rem) / 2) 0;border-bottom:1px solid var(--divider)}
+#list-scroll{--seam:1rem}
+#list-inner{will-change:transform}
+/* All connected: time-zone groups (zone + campus count), one row per campus (name + town); no per-row badge (the title says "All N connected" once).
+   While the list scrolls, #list-pin holds the current zone's label at the top; the next zone's label pushes it up as it arrives (see pinList). */
+.cgh{display:flex;align-items:baseline;gap:.8rem;margin-top:1.4rem;padding:0 0 .6rem;font-family:var(--head);font-weight:600;font-size:var(--fs-h6);line-height:1.3;letter-spacing:.03em;color:var(--mute)}
+.copy>.cgh:first-child,#list-inner>.cgh:first-child{margin-top:0}
+.cgh span{font-family:var(--body);font-weight:400;font-size:1.6rem;letter-spacing:0;color:var(--dim)}
+#list-pin{position:absolute;left:0;right:0;top:0;z-index:1;margin:0;background:var(--panel);will-change:transform}
+#list-pin[hidden]{display:none}
+#list-pin::after{content:'';position:absolute;left:0;right:0;top:100%;height:1.2rem;background:linear-gradient(var(--panel),transparent);pointer-events:none} /* rows dissolve under the pinned label instead of being sliced */
+.crow{display:flex;align-items:baseline;justify-content:space-between;gap:1.2rem;padding:.6rem 0;border-top:1px solid var(--divider);font-size:2rem;line-height:1.25}
+.crow .nm{flex:1;min-width:0;color:var(--ink)} /* long names wrap, never cut */
+.crow small{flex:none;font-size:1.6rem;color:var(--mute);white-space:nowrap}
+/* Disconnected: ONE campus fills the tile, rotating every 9 s (longest outage first).
+   who (name + town, full width) | how long (outage length as the hero numeral, unit, CT time lost) · hairline · why (reason + detail) | pager.
+   The current pager dash fills white over the 9 s, counting down to the next card (hidden when only one campus is down).
+   No red "Disconnected" badge: the pulsing tile edge and the red title count already say it. */
+#list-card{flex:1;min-height:0;display:flex;flex-direction:column;gap:.8rem}
+#list-card[hidden]{display:none}
+#t-list h2 #list-n{font-size:1.8rem} /* Campus list count ("1/3 disconnected" / "All 52 connected"): 18px like the card labels, larger than other tiles' title meta on request */
+.dc-id{display:flex;align-items:baseline;min-width:0;line-height:1.3} /* one line: long names truncate with an ellipsis, the town always shows in full; 1.3 keeps Titillium descenders inside the clipped name */
+.dc-id .nm{font-family:var(--head);font-weight:600;font-size:2.6rem;color:var(--ink);margin-right:.8rem;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dc-id .tw{flex:none;font-size:1.8rem;color:var(--mute);white-space:nowrap}
+.dc-main{flex:none;display:grid;grid-template-columns:15rem minmax(0,1fr);column-gap:1.6rem} /* hugs its content (no stretch); spare tile height collects above the pager */
+.dc-clock{display:flex;flex-direction:column;justify-content:center;min-width:0;padding:1.6rem 1.6rem 1.6rem 0;border-right:1px solid var(--divider)} /* 16px top/bottom: the hairline runs 16px past the text */
+.dc-clock b{font-family:var(--head);font-weight:600;font-size:6.4rem;line-height:.95;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dc-clock b.hm{font-size:4.6rem} /* 1 h or more ("1:05 h"): smaller so the longest ("12:59 h") still fits the column */
+.dc-clock b u{text-decoration:none;font-family:var(--body);font-weight:400;font-size:2rem;letter-spacing:0;color:var(--mute);margin-left:.5rem}
+.dc-clock small{margin-top:.6rem;font-size:1.6rem;line-height:1.25;color:var(--mute);white-space:nowrap}
+.dc-why{display:flex;flex-direction:column;justify-content:center;gap:.2rem;min-width:0;padding:1.6rem 0}
+.dc-why .cz{font-size:2.2rem;line-height:1.2;color:var(--ink)}
+.dc-why .dt{font-size:1.7rem;line-height:1.25;color:var(--mute)}
+.dc-pg{display:flex;gap:.6rem;margin-top:auto} /* pinned to the card bottom */
+.dc-pg i{flex:1;height:.4rem;border-radius:.2rem;background:var(--line);position:relative;overflow:hidden}
+/* Timed fill bar, shared by the Campus list pager (9 s) and Team rotation (3 h shift): track = --line, fill = white growing left to right.
+   --pg-t = window length, --pg-d = minus the time already elapsed (set per render), so a re-render resumes the fill instead of restarting it. */
+.dc-pg i.on::after,.rs-bar:not(.full)::after{content:'';position:absolute;inset:0;background:var(--ink);transform-origin:left;transform:scaleX(0);animation:pgFill var(--pg-t,9s) linear var(--pg-d,0s) forwards}
+@keyframes pgFill{to{transform:scaleX(1)}}
+/* tile needs attention (default state only: Campuses map + Campus list while any campus is disconnected; TOC peer status while any of its rows is not OK).
+   Reuses the Active update pulse (updPulse, Threat status / Suspect information), looping for as long as the problem lasts; reduced motion falls back to a steady red edge */
+.tile.alert{animation:updPulse 2.4s ease-in-out infinite}
+
+
+/* ---------- drone ---------- */
+.fleet{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+.fleet div{display:flex;flex-direction:column}
+.fleet .big{font-size:var(--fs-h1)}.fleet small{font-size:var(--fs-cap);color:var(--mute);margin-top:.4rem}
+.ready{margin-top:auto}
+
+/* ---------- news ---------- */
+.screen{flex:1;min-height:0;border-radius:.4rem;background:#211a1b;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.screen::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 2px,transparent 2px 5px),linear-gradient(120deg,#4d3f3f,#211a1b 55%,#33292a);animation:drift 14s linear infinite;background-size:auto,200% 100%}
+@keyframes drift{to{background-position:0 0,-200% 0}}
+/* Local news has its own motion (slow breathing studio glow) so it never reads as one of the drone feeds above, which keep the scrolling drift. */
+#t-news .screen::before{background:radial-gradient(ellipse 60% 80% at 30% 50%,rgba(211,210,210,.22),transparent 70%),linear-gradient(180deg,#33292a,#211a1b);background-size:160% 100%,auto;background-position:0 0,0 0;animation:newsGlow 7s ease-in-out infinite alternate}
+@keyframes newsGlow{to{background-position:100% 0,0 0}}
+.screen .mt{position:absolute;right:1rem;top:1rem;display:flex;gap:.6rem;align-items:center;background:rgba(0,0,0,.6);padding:.3rem .9rem;border-radius:10rem;font-size:var(--fs-cap);color:var(--ink)}
+.screen .fb{position:relative;color:var(--mute);font-size:var(--fs-cap);text-align:center;padding:0 1rem;display:none}
+.screen.down .fb{display:block}
+/* Local news screen look, shared by default and Active: muted pill top-left, channel name in the tile title, no caption over the picture. */
+/* Local news: a muted looping clip (default: news-default.mp4, active: news-active.mp4) over the old glow, which stays as the fallback if a file is missing */
+#t-news .vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .3s}
+#news.down .vid{opacity:.15}
+#t-news>h2 span{font-family:var(--head);font-weight:600;font-size:var(--fs-title);letter-spacing:.03em;color:var(--mute)} /* channel name (both states): same size, weight, tracking and colour as the tile title */
+#t-news .mt{left:1.2rem;right:auto;top:1.2rem;border:1px solid var(--land-edge);font-size:var(--fs-cap);color:var(--mute)}
+#news .fb,#t-feeds .fb,#t-assets .fb{display:none;flex-direction:column;align-items:center;gap:.5rem;padding:0 2rem}
+#news .fb b,#t-feeds .fb b,#t-assets .fb b{font-family:var(--head);font-weight:600;font-size:var(--fs-h2);line-height:1;color:var(--ink)}
+#news .fb span,#t-feeds .fb span,#t-assets .fb span{font-size:var(--fs-b2);color:var(--mute)}
+#news.down .fb,#t-feeds .screen.down .fb,#t-assets .screen.down .fb{display:flex}
+#t-feeds .screen.down :is(.hd,.lf,.bl),#t-assets .screen.down .ah{opacity:.15}.screen.down::before{opacity:.15}
+
+/* ---------- planned sites ---------- */
+/* Planned sites: all sites listed as a schedule (no rotation). Bell time is Central. */
+.srow{display:grid;grid-template-columns:10.6rem minmax(0,1fr) auto;gap:1.2rem;align-items:center;flex:1;border-top:1px solid var(--divider)}
+.srow:first-of-type{border-top:0}
+.srow .bt{font-family:var(--head);font-weight:600;font-size:var(--fs-h3);line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
+.srow .sn{min-width:0;display:flex;flex-direction:column;gap:.3rem}
+.srow .sn b{display:block;font-family:var(--head);font-weight:600;font-size:var(--fs-h5);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srow .sn small{display:block;font-size:var(--fs-cap);line-height:var(--lh-cap);color:var(--mute);white-space:nowrap}
+.srow .chip{font-size:var(--fs-cap)}
+/* Planned sites + Team schedule (same row treatment): larger time / name / location-or-detail / status, above the type scale.
+   Sized so "Godby High School" and "Tallahassee, FL · in 3h 12m" still fit at 1080p; the time column sizes to the time. */
+#site-a .srow,#sched-a .srow{grid-template-columns:auto minmax(0,1fr) auto}
+#site-a .srow .bt,#sched-a .srow .bt{font-size:2.4rem;margin-right:1.2rem} /* extra space after the time: 24px to the name / event (row gap 12px + 12px) */
+#site-a .srow .sn b,#sched-a .srow .sn b{font-size:2.1rem} /* 2.1: largest where "Incident walkthrough" still fits beside a 12:55 PM time and an "in 42 min" chip */
+#site-a .srow .sn small,#sched-a .srow .sn small{font-size:1.6rem;line-height:1.2}
+#site-a .srow .chip,#sched-a .srow .chip{font-size:1.5rem}
+/* Planned sites + Team schedule, raised on request: name 22px, detail 17px, chip 17px, tighter name/detail gap */
+#site-a .srow .sn,#sched-a .srow .sn{gap:.1rem}#site-a .srow .sn b,#sched-a .srow .sn b{font-size:2.2rem}#site-a .srow .sn small,#sched-a .srow .sn small{font-size:1.7rem}#site-a .srow .chip,#sched-a .srow .chip{font-size:1.7rem} /* 22px: the largest where "Windy City onboarding" still fits beside a 7:30 AM time and an "in 2h 50m" chip; both tiles match */
+.fade{animation:fadeIn .8s ease}
+@keyframes fadeIn{from{opacity:0}}
+
+/* ---------- comms ---------- */
+
+
+/* ---------- rotation ---------- */
+.who{padding:.4rem 0;border-top:1px solid var(--divider);display:flex;justify-content:space-between;gap:1rem;align-items:baseline}
+.who:first-of-type{border-top:0}
+.who b{font-weight:600;font-size:var(--fs-h5)}.who small{color:var(--mute);font-size:var(--fs-cap);margin-left:.8rem}
+.who time{color:var(--mute);font-size:var(--fs-cap);white-space:nowrap}
+.sub{font-family:var(--head);font-weight:600;font-size:var(--fs-h6);color:var(--ok);margin:0 0 .1rem;display:flex;justify-content:space-between;align-items:baseline}
+.sub time{font-family:var(--body);font-weight:400;font-size:var(--fs-cap);color:var(--mute)}
+.sub.nx{color:var(--info);margin-top:.4rem}
+/* Team rotation: who is on shift is the hero; next shift is one muted line; bar = elapsed share of the 3 h shift */
+/* Team rotation: two groups pinned top and bottom (who's on now / progress toward the next handover), even gaps inside each */
+#rota-st{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-between;padding-top:.3rem}
+.rs-on{display:flex;flex-direction:column;gap:.9rem}
+.rs-on small{display:block;font-size:1.6rem;line-height:1;color:var(--mute)}
+.rs-on b{display:block;font-family:var(--head);font-weight:600;font-size:6.4rem;line-height:1;color:var(--ink)}
+.rs-on b span{font-family:var(--body);font-weight:400;font-size:2.4rem;color:var(--ink);margin-left:1rem}
+.rs-bar{height:.4rem;border-radius:.2rem;background:var(--line);margin-bottom:1.1rem;position:relative;overflow:hidden} /* same timed bar as the Campus list pager; fills over the 3 h shift */
+.rs-bar.full{background:var(--warn)} /* shift time is up (waiting for the next team to sign in): full and yellow, continuing the "Ending soon" fill */
+#rota-meta .chip{margin:-.4rem 0;font-style:normal;font-size:1.4rem} /* 14px (raised slightly from the 12px small chip); negative margin keeps the title height */
+.rs-bar.end::after{background:var(--warn)} /* last 15 min: the fill turns yellow, matching the "Ending soon" badge */ /* "Ending soon" / "Waiting for Team N" badge: no extra title height */
+.rs-nx{font-size:1.7rem;line-height:1;color:var(--mute)}.rs-nx b{font-weight:600;color:var(--ink)}
+
+/* ---------- demo-only state toggle (below the grid, not part of either state) ---------- */
+#demo-toggle{display:flex;align-items:center;gap:1.4rem;font-size:var(--fs-cap);color:var(--mute);padding:0 .6rem;min-height:0}
+#demo-toggle .seg{display:inline-flex;border:1px solid var(--line);border-radius:.4rem;background:var(--panel);overflow:hidden}
+#demo-toggle button{font:inherit;font-size:var(--fs-cap);color:var(--mute);background:transparent;border:0;padding:.2rem 1.8rem;cursor:pointer}
+#demo-toggle button[aria-pressed=true]{background:var(--ink);color:var(--bg);font-weight:600}
+#demo-toggle button:focus-visible{outline:2px solid var(--info);outline-offset:-2px}
+
+
+/* ---------- map extras (default-state map) ---------- */
+#map-wrap{overflow:hidden}
+#map .land,#map .grat{vector-effect:non-scaling-stroke}
+
+/* ---------- ACTIVE: threat status board ---------- */
+#t-list #tb{flex:1;display:flex;flex-direction:column;min-height:0}
+.tr{flex:1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1.2rem;align-items:center;border-top:1px solid var(--divider)}
+.tr:first-child{border-top:0}
+.tr .w{display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.tr .w b{font-family:var(--head);font-weight:600;font-size:3rem;line-height:1.1;white-space:nowrap} /* Threat status sizes restored to the pre-type-scale values on request: name 30px, detail 17px, chip 15px, empty 20px */
+.tr .w small{font-size:1.7rem;line-height:1.2;color:var(--mute)}
+.tr .chip{font-size:1.5rem}
+.tr.none{justify-content:center;font-size:2rem;color:var(--dim);display:flex;align-items:center}
+.chip.sm{font-size:var(--fs-cap);padding:.05rem .8rem .1rem;justify-content:center}
+
+/* ---------- drone lanes (both states) ---------- */
+.dsite{display:flex;flex-direction:column;gap:.4rem;padding-bottom:.4rem;min-width:0}
+/* Drone readiness campus name: hero size (34px at 1080p), above the type scale like the figures below it; 1.15 line + .3rem clip padding (cancelled by the negative margin) keeps descenders whole without growing the tile */
+.dsite b{font-family:var(--head);font-weight:600;font-size:3.4rem;line-height:1.15;padding-bottom:.3rem;margin-bottom:-.3rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dsite span{font-size:2rem;line-height:1.2;color:var(--mute)} /* campus location: raised on request */
+.health.dct{grid-template-rows:1fr;border-top:1px solid var(--divider);min-height:0}
+.nest{margin-top:auto;display:flex;align-items:center;gap:1.2rem;font-size:1.6rem;color:var(--mute);padding-top:.4rem;white-space:nowrap} /* no divider above the nest row (removed on request) */
+.nest .chip{font-size:1.6rem;padding:.05rem .8rem .1rem} /* nest footer text + chip raised on request (both states) */
+.nest b{color:var(--ink);font-weight:600}
+/* Drone lanes in the ACTIVE state use the default state's lane grammar; a muted second line carries pilot / location / link / video */
+/* Drone readiness, ONE lane row for both states: lane · drone · who (pilot in flight / "Docked" in the nest) · pack voltage · state badge.
+   Equal-height hairline rows; campus sits in the tile-title meta; nest footer below. */
+.lanes{flex:1;min-height:0;display:grid;grid-template-columns:2.8rem minmax(0,1fr) 5.8rem 5.4rem auto;grid-auto-rows:minmax(0,1fr);column-gap:.8rem} /* one column grid shared by all rows (subgrid) so lane/voltage/badge line up */
+.lr{grid-column:1/-1;min-height:0;display:grid;grid-template-columns:subgrid;align-items:center;border-top:1px solid var(--divider);font-size:var(--fs-b3);line-height:1;white-space:nowrap}
+.lr:first-child{border-top:0}
+.lr>*{min-width:0}
+.lr .bx{width:2.8rem;height:2.8rem;display:flex;align-items:center;justify-content:center;border:2px solid var(--c,var(--land-edge));border-radius:.35rem;font-family:var(--head);font-weight:600;font-size:var(--fs-b3);line-height:1;color:var(--ink)}
+.lr .who i{display:inline-block;width:1.4rem;height:.9rem;margin-right:.7rem;border-radius:.15rem;background:var(--c);vertical-align:middle}
+.lr .lf{font-family:var(--head);font-weight:600;font-size:var(--fs-b3);color:var(--mute);font-variant-numeric:tabular-nums}
+.lr .who{font-family:var(--head);font-weight:600;font-size:var(--fs-b2);color:var(--ink);overflow:hidden;text-overflow:ellipsis}
+.lr .who:not(.dock){text-align:right} /* Active: pilot names sit against the lane column; default "Docked" stays left */
+.lr .who.dock{font-family:var(--body);font-weight:400;font-size:var(--fs-b3);color:var(--mute)}
+.lr .pc{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.lr .pc.crit{color:var(--bad)}
+.lr .chip{justify-self:end}
+.lr .free{grid-column:2/-1;color:var(--dim)}
+.lr.dim>*{opacity:.45}
+
+
+/* ---------- ACTIVE: key events / comms activity ---------- */
+.pad{padding:1.4rem 1.6rem;height:100%;display:flex;flex-direction:column;min-height:0}
+#t-suspect .sp{font-size:2.6rem;line-height:1.3;padding-bottom:.4rem;color:var(--ink);overflow:hidden}
+#t-suspect .sp.none{font-size:2rem;color:var(--dim);flex:1;display:flex;align-items:center;justify-content:center}
+/* update cue (Suspect information, Threat status): the outline glows red twice, and a red "Updated" badge takes the title's top-right corner for 5 s */
+.tile.upd{animation:updPulse 2.4s ease-in-out}
+@keyframes updPulse{0%,50%,100%{border-color:var(--tile-line);box-shadow:none}25%,75%{border-color:var(--bad);box-shadow:0 0 2.4rem rgba(239,65,65,.35)}} /* 1px red edge + soft glow (no extra spread ring, so the edge stays 1px) */
+.upd-chip{font-style:normal;font-size:var(--fs-cap);padding:.1rem .7rem .15rem;margin:-.3rem 0} /* negative margin: the badge never makes the title row taller */ /* <i> element: upright; smaller than the 1.5rem chip.sm */
+.tile>h2 .meta{animation:fadeIn .3s ease} /* corner content (badge <-> time / count) fades in when it swaps */
+/* Channel stats: one band per channel (name + people on top), then five equal stat cells. Each cell is a small panel: big centred figure over its label; zero cells recede. */
+/* Channel stats: a matrix (answers down, channels across) so every label and channel name appears once and a row compares channels.
+   Column heads in the Campus-list group-header style; equal-height hairline rows; figures semibold white, zeros dim; no fills/bars/colour. */
+#stats-body{flex:1;min-height:0;display:grid;grid-template-columns:9rem repeat(3,minmax(0,1fr));grid-template-rows:auto repeat(3,minmax(0,1fr));column-gap:.8rem} /* 9rem label column ("Heard shot" is 83px) + .8rem gap: room for "Coordination" at 18px */
+#stats-body>*{display:flex;align-items:center;min-width:0;border-top:1px solid var(--divider)}
+#stats-body .sh{flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:.4rem;padding-bottom:.9rem;border-top:0;font-family:var(--head);font-weight:600;font-size:var(--fs-h6);line-height:1;letter-spacing:.03em;color:var(--mute);white-space:nowrap}
+#stats-body .sh span{font-family:var(--body);font-weight:400;font-size:1.5rem;letter-spacing:0;color:var(--dim)}
+#stats-body .sl{font-size:1.8rem;color:var(--mute);white-space:nowrap}
+#stats-body .sv{font-family:var(--head);font-weight:600;font-size:2.6rem;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+#stats-body .sv.z{color:var(--dim)} /* Channel stats sizes raised on request (pre-type-scale values): people 15px, row label 18px, figure 26px; channel name stays 18px, the most "Coordination" fits */
+/* Keyword matches: one row per message, equal heights with hairlines (same grammar as Planned sites / peer rows) */
+#kw-body{flex:1;min-height:0;display:flex;flex-direction:column}
+.kr{flex:1;min-height:0;display:grid;grid-template-columns:9.4rem minmax(0,1fr) 9.4rem 10.4rem 13rem;gap:1.4rem;align-items:center;border-top:1px solid var(--divider);font-size:var(--fs-b2);line-height:var(--lh-b2);white-space:nowrap}
+.kr:first-child{border-top:0}
+.kr time{color:var(--mute);font-size:var(--fs-b2)} /* same size as the message text */
+.kr .m{overflow:hidden;text-overflow:ellipsis}
+.kr .chn{color:var(--mute);overflow:hidden;text-overflow:ellipsis}
+.kr .sn{color:var(--ink);overflow:hidden;text-overflow:ellipsis}
+.kr .loc{color:var(--mute);overflow:hidden;text-overflow:ellipsis} /* channel / name / location columns sized to their longest values (86 / 94 / 125px at 1080p) + a little room; location left-aligned so it sits one gap after the name; the freed width goes to the message */
+.kr mark{background:var(--warn);color:var(--bg);border-radius:.3rem;padding:0 .4rem}
+.kn{flex:1;display:flex;align-items:center;color:var(--dim);font-size:var(--fs-b1)}
+/* Caution notes (Active, read-only reference for the incident campus): icon + description per row, hairline between rows (same grammar as the other lists);
+   text wraps; when the notes are taller than the tile they loop slowly upward (shared .autoscroll, same as the Campus list), otherwise they stay still */
+#notes-body{--seam:1.8rem;display:flex;flex-direction:column}
+#notes-inner{will-change:transform}
+.cn{flex:none;display:grid;grid-template-columns:3.6rem minmax(0,1fr);gap:1.2rem;align-items:start;padding:.9rem .4rem .9rem 0;border-top:1px solid var(--divider);font-size:var(--fs-b2);line-height:var(--lh-b2);color:var(--ink)}
+.cn:first-child{border-top:0;padding-top:.1rem}
+.cn img{width:3.6rem;height:3.6rem;display:block}
+.cn p{padding-top:.5rem;overflow-wrap:anywhere}
+/* alternative layout: notes fill a 2x2 tile, so they read larger (text 24px, icons 48px); still loops if a campus has more than fit */
+#grid.alt .cn{grid-template-columns:4.8rem minmax(0,1fr);gap:1.6rem;padding:1.4rem .4rem 1.4rem 0;font-size:2.4rem;line-height:1.3}
+#grid.alt .cn:first-child{padding-top:.1rem}
+#grid.alt .cn img{width:4.8rem;height:4.8rem}
+#grid.alt .cn p{padding-top:.6rem}
+
+/* ---------- demo-only: alarm switch, alarm modal, stage border ---------- */
+#demo-toggle .sw{display:inline-flex;align-items:center;gap:.9rem;padding:0;font-size:var(--fs-cap)}
+#demo-toggle .sw .trk{width:4.4rem;height:2.4rem;border-radius:1.2rem;border:2px solid var(--dim);background:transparent;position:relative;transition:background .15s,border-color .15s}
+#demo-toggle .sw .trk::after{content:"";position:absolute;top:.2rem;left:.2rem;width:1.6rem;height:1.6rem;border-radius:50%;background:var(--dim);transition:transform .15s,background .15s}
+#demo-toggle .sw[aria-checked=true] .trk{background:var(--brand);border-color:var(--brand)}
+#demo-toggle .sw[aria-checked=true] .trk::after{background:var(--ink);transform:translateX(2rem)}
+#demo-toggle .sw[aria-checked=true]{color:var(--ink)}
+#demo-toggle .sw:focus-visible{outline:2px solid var(--info);outline-offset:2px;border-radius:.4rem}
+/* trigger source for the next alarm run (read when the switch turns on) */
+#demo-toggle .src{display:inline-flex;align-items:center;gap:.8rem;font-size:var(--fs-cap)}
+#demo-toggle select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:.4rem;padding:.1rem .6rem;cursor:pointer}
+#demo-toggle select:focus-visible{outline:2px solid var(--info);outline-offset:-2px}
+#alarm-ov{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:linear-gradient(rgba(239,65,65,.2),rgba(239,65,65,.2)),rgba(0,0,0,.6)}
+/* pulse: a second layer of the SAME red fades in and out over the backdrop (colours unchanged, motion added) */
+#alarm-ov::before{content:"";position:absolute;inset:0;background:rgba(239,65,65,.3);opacity:0;animation:almPulse 1.6s ease-in-out infinite;pointer-events:none}
+@keyframes almPulse{50%{opacity:1}}
+.alm{position:relative;width:80rem;background:var(--panel);border:1px solid var(--line);border-radius:.6rem;overflow:hidden;box-shadow:0 2rem 6rem rgba(0,0,0,.6)}
+.alm-h{background:var(--bad);color:var(--ink);padding:1.8rem 2.4rem;display:flex;flex-direction:column;gap:1rem;align-items:center;text-align:center}
+.alm-t{font-family:var(--head);font-weight:600;font-size:var(--fs-h1);line-height:1;letter-spacing:.02em}
+.alm-w{display:flex;align-items:center;justify-content:center;gap:1.2rem;font-size:var(--fs-b1);line-height:1}
+.alm-b{display:inline-flex;align-items:center;gap:.8rem;background:rgba(0,0,0,.28);border-radius:2rem;padding:.4rem 1.4rem .5rem;font-family:var(--head);font-weight:600;font-size:var(--fs-btn)}
+.alm svg{width:2.4rem;height:2.4rem;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.alm-b img{width:2.8rem;height:2.8rem;flex:none;display:block} /* trigger-source icon file (TRIGGER_ICON) */
+.alm-ty{font-size:var(--fs-b1);line-height:1} /* Centegix only: alert type · subtype */
+.alm-c{padding:2.4rem}
+.alm-bld{display:flex;align-items:center;gap:1.8rem;padding-bottom:2rem;margin-bottom:2rem;border-bottom:1px solid var(--line)}
+.alm-bld svg{width:5rem;height:5rem;color:var(--mute)}
+.alm-bld b{display:block;font-family:var(--head);font-size:var(--fs-h2);line-height:1;font-weight:600}
+.alm-bld b i{font-style:normal;color:var(--mute);margin:0 1.2rem}
+.alm-bld span{display:block;margin-top:.6rem;color:var(--mute);font-size:var(--fs-b1)}
+.alm-bx{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem}
+.alm-bx>div{border:1px solid var(--line);border-radius:.6rem;padding:1.4rem 1.8rem;background:var(--panel);font-size:var(--fs-b1);display:flex;flex-direction:column;gap:.7rem}
+.alm-bx small{display:block;font-family:var(--head);font-weight:600;font-size:var(--fs-h6);line-height:1;letter-spacing:.03em;color:var(--mute)}
+.alm-bx b{font-family:var(--head);font-weight:600;font-size:var(--fs-h2);line-height:1}
+.alm-bx .ck{display:flex;align-items:center;gap:1rem}.alm-bx .ck svg{width:3rem;height:3rem;color:var(--mute)}
+.alm-bx .sub{color:var(--mute)}
+/* shared outage dimming (same .45 as the Active drone-lane dim); toggled by applyOutage() on Independent Comms, Drone readiness, Planned sites / Key events, Campus list / Threat status, Keyword matches / Channel stats (Active), map dot markers and the header incident group / stage badge */
+.outage-dim{opacity:.45}
+/* bottom stops above the demo footer: --footer-h is measured in JS (setFooterH); 1.5rem = body bottom padding (1rem) + half the grid gap */
+#stage-frame{position:fixed;left:0;right:0;bottom:calc(var(--footer-h,2.8rem) + 1.5rem);top:8.2rem; /* header bottom: wraps the grid */border:2px solid transparent;pointer-events:none;z-index:40}
+#stage-frame.f-ver{border-color:var(--st-ver)}#stage-frame.f-res{border-color:var(--st-res)}#stage-frame.f-med{border-color:var(--st-med)}#stage-frame.f-reu{border-color:var(--st-reu)}
+
+/* Titillium Web's glyph box is taller than Barlow's: single-line labels that clip (overflow hidden) get room for descenders */
+#inc-hd .ad,#t-feeds .hd .pn,#t-feeds .hd .lo,#t-assets .ah b,#t-assets .ah span,.srow .sn b{line-height:1.3}
+@media (prefers-reduced-motion:reduce){.dis-ring{animation:none}.screen::before,#t-news .screen::before{animation:none}.fade{animation:none}#alarm-ov::before{animation:none}.wx-track{animation:none}.tile.upd,.tile>h2 .meta{animation:none}.tile.alert{animation:none;border-color:var(--bad)}.dc-pg i.on::after{animation:none;transform:none}}
+</style>
+</head>
+<body>
+
+<header id="brand"><div class="lgrp"><svg class="logo" role="img" aria-label="Campus Guardian Angel" viewBox="0 0 577 80" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<path d="M39.9746 0C53.116 0 64.7072 6.63233 71.5869 16.7314L65.4521 18.666C59.5801 11.0284 50.3533 6.10449 39.9746 6.10449C30.6815 6.10449 22.3113 10.0518 16.4463 16.3604L11.8174 12.374C18.8042 4.76783 28.8324 1.08812e-06 39.9746 0Z" fill="url(#paint0_linear_405_28627)"/>
+<path d="M78.8359 39.4941C78.8359 52.6367 72.2023 64.2289 62.1016 71.1084L60.167 64.9746C67.8065 59.1027 72.7314 49.8743 72.7314 39.4941C72.7314 30.2001 68.7833 21.829 62.4736 15.9639L66.46 11.3359C74.0671 18.3228 78.8359 28.3512 78.8359 39.4941Z" fill="url(#paint1_linear_405_28627)"/>
+<path d="M38.8848 80C25.7442 80 14.1533 73.3686 7.27344 63.2705L13.4082 61.3359C19.2803 68.9726 28.5069 73.8955 38.8848 73.8955C48.1756 73.8955 56.5444 69.9504 62.4092 63.6445L67.0381 67.6299C60.0515 75.2337 50.025 80 38.8848 80Z" fill="url(#paint2_linear_405_28627)"/>
+<path d="M-1.23079e-06 38.5918C-1.80522e-06 25.4505 6.63233 13.8592 16.7314 6.97949L18.666 13.1143C11.0284 18.9863 6.10449 28.2131 6.10449 38.5918C6.10449 47.8849 10.0518 56.2551 16.3604 62.1201L12.374 66.749C4.76783 59.7622 1.43249e-06 49.734 -1.23079e-06 38.5918Z" fill="url(#paint3_linear_405_28627)"/>
+<ellipse cx="64.1238" cy="13.4617" rx="3.1746" ry="3.30159" fill="white"/>
+<ellipse cx="14.3465" cy="14.4735" rx="3.1746" ry="3.30159" fill="white"/>
+<ellipse cx="14.3465" cy="64.2586" rx="3.1746" ry="3.30159" fill="white"/>
+<ellipse cx="65.3973" cy="64.7625" rx="3.1746" ry="3.30159" fill="white"/>
+<use xlink:href="#stroke0_405_28627" fill="white"/>
+<mask id="stroke1_405_28627" fill="white">
+<use xlink:href="#stroke0_405_28627"/>
+</mask>
+<path d="M59.8686 21.664L41.0952 18.6399C40.2906 18.5103 39.4702 18.5106 38.6656 18.6409L19.9902 21.664L19.9061 22.9819C19.6956 26.2767 19.4939 31.5237 19.5718 36.5851C19.6107 39.1154 19.7198 41.6206 19.9364 43.8229C20.1499 45.9932 20.4781 47.9881 21.0008 49.4333C21.5794 51.033 22.7927 52.5228 24.1903 53.8428C25.6109 55.1846 27.347 56.4666 29.1447 57.6302C32.2249 59.6238 35.5972 61.341 38.1325 62.4795V58.8214C35.9475 57.7781 33.3515 56.397 30.9613 54.85C29.2631 53.7509 27.7068 52.5922 26.4839 51.4373C25.2381 50.2605 24.4569 49.1975 24.1359 48.31C23.759 47.2679 23.4603 45.6113 23.2526 43.4998C23.048 41.4202 22.9416 39.0131 22.9034 36.5343C22.8369 32.2063 22.9795 27.7249 23.1539 24.5092L36.4456 22.3444C37.3725 22.1935 38.2143 22.9054 38.2143 23.8401L38.2143 29.0442C38.2143 29.979 38.9762 30.7368 39.916 30.7368C40.8598 30.7368 41.6233 29.9728 41.6176 29.034L41.5941 25.141L41.6039 23.7519C41.6102 22.8587 42.4161 22.1821 43.3018 22.3263L56.7049 24.5092C56.8793 27.7249 57.0219 32.2063 56.9553 36.5343C56.9172 39.0131 56.8107 41.4202 56.6062 43.4998C56.3985 45.6113 56.0998 47.2679 55.7229 48.31C55.4018 49.1975 54.6207 50.2605 53.3748 51.4373C52.152 52.5922 50.5956 53.7509 48.8975 54.85C46.5295 56.3827 43.9594 57.7525 41.7872 58.7923V62.4521C44.3155 61.3136 47.6585 59.6079 50.714 57.6302C52.5118 56.4666 54.2479 55.1846 55.6685 53.8428C57.0661 52.5228 58.2793 51.033 58.858 49.4333C59.3807 47.9881 59.7089 45.9932 59.9224 43.8229C60.139 41.6206 60.2481 39.1154 60.287 36.5851C60.3649 31.5237 60.1631 26.2767 59.9527 22.9819L59.8686 21.664Z" stroke-width="0.507937" stroke="white" mask="url(#stroke1_405_28627)"/>
+<path d="M34.0322 24.5972C34.711 24.4817 35.2655 25.0536 35.1367 25.73C35.0657 26.1033 35.0107 26.4958 35.0107 26.9429C35.0107 28.4099 34.9368 30.0152 36.2734 31.5747C36.7733 32.1579 37.0832 32.3999 37.3867 32.5454C37.5905 32.643 37.835 32.7146 38.1992 32.7808V35.1792C37.53 35.0844 36.9272 34.9504 36.3633 34.6802C35.6316 34.3295 35.069 33.8059 34.4766 33.1147C32.7243 31.0704 32.7447 28.8231 32.958 27.1724L27.2422 28.1509V39.2739C27.248 39.4525 27.2526 39.6488 27.2578 39.8599C27.2815 40.8265 27.3129 42.1069 27.4873 43.4526C27.7041 45.1253 28.1215 46.6931 28.8711 47.7378C30.0555 49.3882 31.7702 50.7309 33.6748 51.8735C35.1738 52.7728 36.7397 53.5179 38.1992 54.1919V56.7983C38.0895 56.7479 37.978 56.6968 37.8652 56.645C36.2376 55.8979 34.3033 55.0104 32.457 53.9028C30.4149 52.6777 28.397 51.1364 26.9482 49.1177C25.8469 47.5829 25.3697 45.5324 25.1396 43.7573C24.9474 42.2742 24.9137 40.8401 24.8906 39.8774C24.8857 39.6737 24.8812 39.491 24.876 39.3335L24.875 39.314V26.1548L34.0322 24.5972ZM31.4297 30.0991C31.552 30.833 31.604 31.1564 31.8242 31.8286C31.919 32.1178 32.1241 32.6913 32.3398 33.1147C32.7723 33.9634 33.4679 34.7872 34.4004 35.6753C34.6003 35.8657 35.2336 36.3241 36.1094 36.7358C36.7734 37.048 37.4999 37.2936 38.1992 37.3931V39.7769C37.0624 39.6679 35.9767 39.2884 35.1025 38.8774C34.0745 38.3941 33.2059 37.8057 32.7686 37.3892C32.129 36.78 31.5926 36.1327 31.1514 35.4995L31.2783 39.8228V39.8403C31.2783 40.6543 31.3435 41.8527 31.5391 43.0181C31.742 44.2272 32.0571 45.2178 32.4502 45.7622C33.0564 46.6016 34.186 47.4935 35.6143 48.4282C36.4318 48.9632 37.3166 49.4707 38.1992 49.9302V52.5757C36.907 51.9567 35.5504 51.2156 34.3174 50.4087C32.8128 49.4241 31.3934 48.3425 30.5312 47.1489C29.8017 46.1388 29.4184 44.6868 29.2041 43.4097C28.9839 42.0971 28.9121 40.7731 28.9111 39.8579L28.6387 30.5513L31.4297 30.0991Z" fill="white"/>
+<path d="M45.8818 24.5034C45.203 24.3879 44.6486 24.9598 44.7773 25.6362C44.8484 26.0095 44.9033 26.4021 44.9033 26.8491C44.9033 28.3162 44.9773 29.9215 43.6406 31.481C43.1408 32.0641 42.8309 32.3062 42.5273 32.4517C42.3236 32.5493 42.079 32.6209 41.7148 32.687V35.0854C42.3841 34.9907 42.9869 34.8567 43.5508 34.5864C44.2825 34.2358 44.8451 33.7121 45.4375 33.021C47.1898 30.9767 47.1693 28.7293 46.9561 27.0786L52.6719 28.0571V39.1802C52.666 39.3587 52.6614 39.5551 52.6562 39.7661C52.6326 40.7328 52.6012 42.0132 52.4268 43.3589C52.21 45.0315 51.7926 46.5994 51.043 47.644C49.8586 49.2944 48.1439 50.6372 46.2393 51.7798C44.7403 52.679 43.1744 53.4241 41.7148 54.0981V56.7046C41.8246 56.6541 41.936 56.6031 42.0488 56.5513C43.6765 55.8041 45.6107 54.9167 47.457 53.8091C49.4992 52.584 51.5171 51.0427 52.9658 49.0239C54.0671 47.4892 54.5443 45.4387 54.7744 43.6636C54.9667 42.1804 55.0003 40.7463 55.0234 39.7837C55.0283 39.5799 55.0328 39.3973 55.0381 39.2397L55.0391 39.2202V26.061L45.8818 24.5034ZM48.4844 30.0054C48.3621 30.7393 48.3101 31.0626 48.0898 31.7349C47.9951 32.024 47.79 32.5976 47.5742 33.021C47.1418 33.8696 46.4461 34.6935 45.5137 35.5815C45.3138 35.7719 44.6805 36.2303 43.8047 36.6421C43.1407 36.9542 42.4142 37.1998 41.7148 37.2993V39.6831C42.8516 39.5742 43.9373 39.1947 44.8115 38.7837C45.8396 38.3003 46.7081 37.7119 47.1455 37.2954C47.7851 36.6863 48.3214 36.0389 48.7627 35.4058L48.6357 39.729V39.7466C48.6357 40.5606 48.5706 41.7589 48.375 42.9243C48.1721 44.1334 47.857 45.1241 47.4639 45.6685C46.8576 46.5079 45.7281 47.3998 44.2998 48.3345C43.4822 48.8695 42.5974 49.3769 41.7148 49.8364V52.4819C43.007 51.863 44.3637 51.1218 45.5967 50.3149C47.1012 49.3303 48.5206 48.2488 49.3828 47.0552C50.1124 46.045 50.4956 44.593 50.71 43.3159C50.9302 42.0034 51.002 40.6793 51.0029 39.7642L51.2754 30.4575L48.4844 30.0054Z" fill="white"/>
+<path d="M107.177 51.6553C102.375 51.6553 99.1098 50.3603 97.3811 47.7702C95.6843 45.1801 94.8359 40.9206 94.8359 34.9915C94.8359 29.0624 95.7003 24.8496 97.4291 22.3532C99.1579 19.8255 102.407 18.5617 107.177 18.5617C110.027 18.5617 113.164 18.9518 116.59 19.7319L116.398 23.9447C113.516 23.4454 110.635 23.1957 107.754 23.1957C104.872 23.1957 102.92 24.0383 101.895 25.7234C100.871 27.3773 100.358 30.5135 100.358 35.1319C100.358 39.7192 100.855 42.8553 101.847 44.5404C102.839 46.1943 104.776 47.0213 107.658 47.0213C110.539 47.0213 113.452 46.7872 116.398 46.3191L116.542 50.6255C113.244 51.3121 110.123 51.6553 107.177 51.6553Z" fill="white"/>
+<path d="M139.397 34.9447V45.617C139.429 46.3035 139.605 46.8184 139.925 47.1617C140.278 47.4738 140.806 47.6766 141.51 47.7702L141.366 51.6553C138.613 51.6553 136.484 51.078 134.979 49.9234C132.418 51.078 129.841 51.6553 127.248 51.6553C122.478 51.6553 120.093 49.1745 120.093 44.2128C120.093 41.8411 120.733 40.1248 122.013 39.0638C123.326 38.0028 125.327 37.3631 128.016 37.1447L134.211 36.6298V34.9447C134.211 33.6965 133.923 32.8227 133.346 32.3234C132.802 31.8241 131.986 31.5745 130.897 31.5745C128.848 31.5745 126.287 31.6993 123.214 31.9489L121.677 32.0426L121.485 28.4383C124.975 27.6269 128.176 27.2213 131.089 27.2213C134.035 27.2213 136.148 27.8454 137.428 29.0936C138.741 30.3106 139.397 32.261 139.397 34.9447ZM128.64 40.7489C126.431 40.9362 125.327 42.1064 125.327 44.2596C125.327 46.4128 126.303 47.4894 128.256 47.4894C129.857 47.4894 131.554 47.2397 133.346 46.7404L134.211 46.4596V40.234L128.64 40.7489Z" fill="white"/>
+<path d="M151.202 51.1404H145.968V27.7362H151.154V29.1872C153.427 27.8766 155.508 27.2213 157.397 27.2213C160.182 27.2213 162.215 27.9858 163.496 29.5149C166.409 27.9858 169.307 27.2213 172.188 27.2213C175.069 27.2213 177.102 28.095 178.287 29.8426C179.471 31.5589 180.063 34.4766 180.063 38.5957V51.1404H174.877V38.7362C174.877 36.2085 174.605 34.4142 174.061 33.3532C173.548 32.2922 172.46 31.7617 170.795 31.7617C169.355 31.7617 167.802 32.0738 166.137 32.6979L165.321 33.0255C165.577 33.6496 165.705 35.6468 165.705 39.017V51.1404H160.519V39.1106C160.519 36.3333 160.263 34.4142 159.75 33.3532C159.238 32.2922 158.118 31.7617 156.389 31.7617C154.788 31.7617 153.299 32.0738 151.923 32.6979L151.202 32.9787V51.1404Z" fill="white"/>
+<path d="M186.205 61.2043V27.7362H191.391V29.1872C193.6 27.8766 195.665 27.2213 197.586 27.2213C200.755 27.2213 203.076 28.173 204.549 30.0766C206.022 31.9489 206.758 35.1163 206.758 39.5787C206.758 44.0099 205.91 47.1305 204.213 48.9404C202.548 50.7504 199.811 51.6553 196.001 51.6553C194.689 51.6553 193.168 51.5149 191.439 51.234V61.2043H186.205ZM196.673 31.7617C195.169 31.7617 193.664 32.0894 192.159 32.7447L191.439 33.0723V46.8809C192.72 47.1305 194.128 47.2553 195.665 47.2553C197.842 47.2553 199.347 46.6468 200.179 45.4298C201.011 44.2128 201.428 42.1376 201.428 39.2043C201.428 34.2426 199.843 31.7617 196.673 31.7617Z" fill="white"/>
+<path d="M226.548 27.7362H231.734V51.1404H226.548V49.6894C224.211 51 222.05 51.6553 220.065 51.6553C216.768 51.6553 214.559 50.7972 213.438 49.0809C212.318 47.3333 211.757 44.2908 211.757 39.9532V27.7362H216.992V40C216.992 42.8085 217.232 44.6965 217.712 45.6638C218.192 46.6312 219.313 47.1149 221.074 47.1149C222.802 47.1149 224.387 46.8028 225.828 46.1787L226.548 45.8979V27.7362Z" fill="white"/>
+<path d="M254.735 32.5574C250.957 32.0582 248.22 31.8085 246.523 31.8085C244.827 31.8085 243.642 32.0113 242.97 32.417C242.329 32.7915 242.009 33.4 242.009 34.2426C242.009 35.0851 242.362 35.678 243.066 36.0213C243.802 36.3645 245.499 36.7702 248.156 37.2383C250.845 37.6752 252.75 38.3773 253.871 39.3447C254.991 40.3121 255.551 42.0284 255.551 44.4936C255.551 46.9589 254.735 48.7688 253.102 49.9234C251.502 51.078 249.149 51.6553 246.043 51.6553C244.09 51.6553 241.625 51.3901 238.648 50.8596L237.159 50.6255L237.351 46.366C241.193 46.8652 243.962 47.1149 245.659 47.1149C247.356 47.1149 248.556 46.9121 249.261 46.5064C249.997 46.1007 250.365 45.4298 250.365 44.4936C250.365 43.5574 250.013 42.9177 249.309 42.5745C248.636 42.2 246.988 41.8099 244.362 41.4043C241.769 40.9674 239.864 40.2965 238.648 39.3915C237.431 38.4865 236.823 36.8326 236.823 34.4298C236.823 32.027 237.655 30.2326 239.32 29.0468C241.017 27.861 243.178 27.2681 245.803 27.2681C247.852 27.2681 250.365 27.5177 253.342 28.017L254.831 28.2979L254.735 32.5574Z" fill="white"/>
+<path d="M285.155 38.8766V34.2894H294.52V50.5787C293.655 50.7972 291.894 51.0312 289.237 51.2808C286.612 51.5305 284.707 51.6553 283.523 51.6553C278.528 51.6553 275.087 50.3135 273.198 47.6298C271.309 44.9461 270.365 40.7489 270.365 35.0383C270.365 29.2965 271.325 25.1149 273.246 22.4936C275.199 19.8723 278.56 18.5617 283.331 18.5617C286.148 18.5617 289.317 18.8738 292.839 19.4979L294.52 19.8255L294.327 23.9447C290.454 23.4454 286.98 23.1957 283.907 23.1957C280.834 23.1957 278.721 24.0383 277.568 25.7234C276.448 27.4085 275.887 30.5291 275.887 35.0851C275.887 39.6411 276.416 42.7929 277.472 44.5404C278.56 46.2567 280.737 47.1149 284.003 47.1149C286.34 47.1149 288.085 46.9745 289.237 46.6936V38.8766H285.155Z" fill="white"/>
+<path d="M315.134 27.7362H320.321V51.1404H315.134V49.6894C312.797 51 310.636 51.6553 308.651 51.6553C305.354 51.6553 303.145 50.7972 302.024 49.0809C300.904 47.3333 300.344 44.2908 300.344 39.9532V27.7362H305.578V40C305.578 42.8085 305.818 44.6965 306.298 45.6638C306.779 46.6312 307.899 47.1149 309.66 47.1149C311.389 47.1149 312.973 46.8028 314.414 46.1787L315.134 45.8979V27.7362Z" fill="white"/>
+<path d="M344.426 34.9447V45.617C344.458 46.3035 344.634 46.8184 344.954 47.1617C345.306 47.4738 345.834 47.6766 346.539 47.7702L346.395 51.6553C343.641 51.6553 341.512 51.078 340.008 49.9234C337.447 51.078 334.87 51.6553 332.276 51.6553C327.506 51.6553 325.121 49.1745 325.121 44.2128C325.121 41.8411 325.761 40.1248 327.042 39.0638C328.355 38.0028 330.356 37.3631 333.045 37.1447L339.239 36.6298V34.9447C339.239 33.6965 338.951 32.8227 338.375 32.3234C337.831 31.8241 337.014 31.5745 335.926 31.5745C333.877 31.5745 331.316 31.6993 328.243 31.9489L326.706 32.0426L326.514 28.4383C330.003 27.6269 333.205 27.2213 336.118 27.2213C339.063 27.2213 341.176 27.8454 342.457 29.0936C343.769 30.3106 344.426 32.261 344.426 34.9447ZM333.669 40.7489C331.46 40.9362 330.356 42.1064 330.356 44.2596C330.356 46.4128 331.332 47.4894 333.285 47.4894C334.886 47.4894 336.582 47.2397 338.375 46.7404L339.239 46.4596V40.234L333.669 40.7489Z" fill="white"/>
+<path d="M350.997 51.1404V27.7362H356.183V30.5447C358.904 28.8284 361.626 27.7206 364.347 27.2213V32.3234C361.594 32.8539 359.24 33.5404 357.288 34.383L356.231 34.8043V51.1404H350.997Z" fill="white"/>
+<path d="M387.707 18V51.1404H382.52V49.9234C380.183 51.078 378.038 51.6553 376.085 51.6553C372.948 51.6553 370.643 50.7348 369.17 48.8936C367.73 47.0525 367.009 43.9631 367.009 39.6255C367.009 35.2879 367.81 32.1362 369.41 30.1702C371.043 28.2043 373.572 27.2213 376.998 27.2213C378.15 27.2213 379.975 27.4241 382.472 27.8298V18H387.707ZM381.656 46.2723L382.472 45.9447V32.0894C380.551 31.7773 378.775 31.6213 377.142 31.6213C373.908 31.6213 372.292 34.2426 372.292 39.4851C372.292 42.356 372.66 44.3532 373.396 45.4766C374.164 46.5688 375.365 47.1149 376.998 47.1149C378.63 47.1149 380.183 46.834 381.656 46.2723Z" fill="white"/>
+<path d="M394.047 51.1404V27.7362H399.282V51.1404H394.047ZM394.047 23.7574V18.3745H399.282V23.7574H394.047Z" fill="white"/>
+<path d="M423.398 34.9447V45.617C423.43 46.3035 423.606 46.8184 423.927 47.1617C424.279 47.4738 424.807 47.6766 425.511 47.7702L425.367 51.6553C422.614 51.6553 420.485 51.078 418.98 49.9234C416.419 51.078 413.842 51.6553 411.249 51.6553C406.479 51.6553 404.094 49.1745 404.094 44.2128C404.094 41.8411 404.734 40.1248 406.015 39.0638C407.327 38.0028 409.328 37.3631 412.017 37.1447L418.212 36.6298V34.9447C418.212 33.6965 417.924 32.8227 417.348 32.3234C416.803 31.8241 415.987 31.5745 414.899 31.5745C412.85 31.5745 410.289 31.6993 407.215 31.9489L405.678 32.0426L405.486 28.4383C408.976 27.6269 412.177 27.2213 415.091 27.2213C418.036 27.2213 420.149 27.8454 421.43 29.0936C422.742 30.3106 423.398 32.261 423.398 34.9447ZM412.642 40.7489C410.433 40.9362 409.328 42.1064 409.328 44.2596C409.328 46.4128 410.305 47.4894 412.257 47.4894C413.858 47.4894 415.555 47.2397 417.348 46.7404L418.212 46.4596V40.234L412.642 40.7489Z" fill="white"/>
+<path d="M435.204 51.1404H429.969V27.7362H435.156V29.1872C437.493 27.8766 439.702 27.2213 441.783 27.2213C444.984 27.2213 447.161 28.1106 448.314 29.8894C449.498 31.6369 450.09 34.539 450.09 38.5957V51.1404H444.904V38.7362C444.904 36.2085 444.616 34.4142 444.04 33.3532C443.495 32.2922 442.359 31.7617 440.63 31.7617C438.997 31.7617 437.429 32.0738 435.924 32.6979L435.204 32.9787V51.1404Z" fill="white"/>
+<path d="M464.527 51.1404L472.642 19.0766H483.255L491.419 51.1404H486.04L484.264 44.2596H471.634L469.857 51.1404H464.527ZM476.772 23.4298L472.69 39.6723H483.207L479.173 23.4298H476.772Z" fill="white"/>
+<path d="M500.717 51.1404H495.483V27.7362H500.669V29.1872C503.006 27.8766 505.215 27.2213 507.296 27.2213C510.498 27.2213 512.675 28.1106 513.827 29.8894C515.012 31.6369 515.604 34.539 515.604 38.5957V51.1404H510.418V38.7362C510.418 36.2085 510.129 34.4142 509.553 33.3532C509.009 32.2922 507.872 31.7617 506.144 31.7617C504.511 31.7617 502.942 32.0738 501.438 32.6979L500.717 32.9787V51.1404Z" fill="white"/>
+<path d="M542.683 54.3234C542.683 59.4411 538.889 62 531.302 62C527.652 62 524.947 61.5163 523.186 60.5489C521.426 59.5816 520.545 57.8184 520.545 55.2596C520.545 54.105 520.833 53.1064 521.41 52.2638C521.986 51.4525 522.914 50.5631 524.195 49.5957C523.138 48.9092 522.61 47.7702 522.61 46.1787C522.61 45.5546 523.042 44.5404 523.907 43.1362L524.339 42.434C522.034 41.0922 520.881 38.7518 520.881 35.4128C520.881 32.6043 521.746 30.5447 523.474 29.234C525.203 27.9234 527.54 27.2681 530.486 27.2681C531.894 27.2681 533.287 27.4241 534.663 27.7362L535.384 27.8766L542.827 27.6894V31.8085L538.841 31.5745C539.706 32.6667 540.138 33.9461 540.138 35.4128C540.138 38.4709 539.338 40.5929 537.737 41.7787C536.168 42.9333 533.703 43.5106 530.342 43.5106C529.509 43.5106 528.805 43.4482 528.229 43.3234C527.78 44.3844 527.556 45.2113 527.556 45.8043C527.556 46.366 527.844 46.756 528.421 46.9745C529.029 47.1929 530.47 47.3177 532.743 47.3489C536.552 47.3801 539.161 47.8794 540.57 48.8468C541.979 49.8142 542.683 51.6397 542.683 54.3234ZM525.683 54.7915C525.683 55.8837 526.132 56.6638 527.028 57.1319C527.924 57.6 529.461 57.834 531.638 57.834C535.512 57.834 537.449 56.7574 537.449 54.6043C537.449 53.3872 537.097 52.6071 536.392 52.2638C535.72 51.9518 534.359 51.7801 532.31 51.7489L527.604 51.4681C526.9 52.0298 526.404 52.5447 526.116 53.0128C525.828 53.5121 525.683 54.105 525.683 54.7915ZM526.068 35.4128C526.068 36.8482 526.42 37.9092 527.124 38.5957C527.828 39.2511 528.965 39.5787 530.534 39.5787C532.102 39.5787 533.223 39.2511 533.895 38.5957C534.599 37.9092 534.952 36.8482 534.952 35.4128C534.952 33.9773 534.599 32.9319 533.895 32.2766C533.191 31.5901 532.054 31.2468 530.486 31.2468C527.54 31.2468 526.068 32.6355 526.068 35.4128Z" fill="white"/>
+<path d="M564.023 46.9277L565.368 46.7872L565.464 50.5787C561.814 51.2965 558.581 51.6553 555.764 51.6553C552.21 51.6553 549.649 50.7035 548.08 48.8C546.544 46.8965 545.775 43.8539 545.775 39.6723C545.775 31.3716 549.249 27.2213 556.196 27.2213C562.919 27.2213 566.28 30.7943 566.28 37.9404L565.944 41.5915H551.057C551.09 43.5262 551.522 44.9461 552.354 45.8511C553.186 46.756 554.739 47.2085 557.012 47.2085C559.285 47.2085 561.622 47.1149 564.023 46.9277ZM561.142 37.6596C561.142 35.3504 560.758 33.7433 559.989 32.8383C559.253 31.9021 557.989 31.434 556.196 31.434C554.403 31.434 553.09 31.9177 552.258 32.8851C551.458 33.8525 551.042 35.444 551.009 37.6596H561.142Z" fill="white"/>
+<path d="M571.602 51.1404V18H576.836V51.1404H571.602Z" fill="white"/>
+<defs>
+<linearGradient id="paint0_linear_405_28627" x1="11.7789" y1="10.3191" x2="64.3899" y2="6.24987" gradientUnits="userSpaceOnUse">
+<stop stop-color="white"/>
+<stop offset="0.878297" stop-color="white" stop-opacity="0"/>
+</linearGradient>
+<linearGradient id="paint1_linear_405_28627" x1="68.5152" y1="11.2975" x2="72.5842" y2="63.9111" gradientUnits="userSpaceOnUse">
+<stop stop-color="white"/>
+<stop offset="0.878297" stop-color="white" stop-opacity="0"/>
+</linearGradient>
+<linearGradient id="paint2_linear_405_28627" x1="67.0766" y1="69.682" x2="14.4699" y2="73.751" gradientUnits="userSpaceOnUse">
+<stop stop-color="white"/>
+<stop offset="0.878297" stop-color="white" stop-opacity="0"/>
+</linearGradient>
+<linearGradient id="paint3_linear_405_28627" x1="10.3191" y1="66.7875" x2="6.24987" y2="14.1765" gradientUnits="userSpaceOnUse">
+<stop stop-color="white"/>
+<stop offset="0.878297" stop-color="white" stop-opacity="0"/>
+</linearGradient>
+<path id="stroke0_405_28627" d="M59.8686 21.664L41.0952 18.6399C40.2906 18.5103 39.4702 18.5106 38.6656 18.6409L19.9902 21.664L19.9061 22.9819C19.6956 26.2767 19.4939 31.5237 19.5718 36.5851C19.6107 39.1154 19.7198 41.6206 19.9364 43.8229C20.1499 45.9932 20.4781 47.9881 21.0008 49.4333C21.5794 51.033 22.7927 52.5228 24.1903 53.8428C25.6109 55.1846 27.347 56.4666 29.1447 57.6302C32.2249 59.6238 35.5972 61.341 38.1325 62.4795V58.8214C35.9475 57.7781 33.3515 56.397 30.9613 54.85C29.2631 53.7509 27.7068 52.5922 26.4839 51.4373C25.2381 50.2605 24.4569 49.1975 24.1359 48.31C23.759 47.2679 23.4603 45.6113 23.2526 43.4998C23.048 41.4202 22.9416 39.0131 22.9034 36.5343C22.8369 32.2063 22.9795 27.7249 23.1539 24.5092L36.4456 22.3444C37.3725 22.1935 38.2143 22.9054 38.2143 23.8401L38.2143 29.0442C38.2143 29.979 38.9762 30.7368 39.916 30.7368C40.8598 30.7368 41.6233 29.9728 41.6176 29.034L41.5941 25.141L41.6039 23.7519C41.6102 22.8587 42.4161 22.1821 43.3018 22.3263L56.7049 24.5092C56.8793 27.7249 57.0219 32.2063 56.9553 36.5343C56.9172 39.0131 56.8107 41.4202 56.6062 43.4998C56.3985 45.6113 56.0998 47.2679 55.7229 48.31C55.4018 49.1975 54.6207 50.2605 53.3748 51.4373C52.152 52.5922 50.5956 53.7509 48.8975 54.85C46.5295 56.3827 43.9594 57.7525 41.7872 58.7923V62.4521C44.3155 61.3136 47.6585 59.6079 50.714 57.6302C52.5118 56.4666 54.2479 55.1846 55.6685 53.8428C57.0661 52.5228 58.2793 51.033 58.858 49.4333C59.3807 47.9881 59.7089 45.9932 59.9224 43.8229C60.139 41.6206 60.2481 39.1154 60.287 36.5851C60.3649 31.5237 60.1631 26.2767 59.9527 22.9819L59.8686 21.664Z"/>
+</defs>
+</svg><i class="dv"></i><div id="toc-badge"></div></div><div id="wx-strip"><div class="wx-track"></div></div><div id="inc-hd" hidden></div><div class="bgrp"><span id="net-slot"></span><span id="stage-badge"></span></div></header>
+
+
+<main id="grid">
+
+  <!-- row 1: one combined time-zone tile (cell 1); the other 3 cells of the row are intentionally empty -->
+  <section class="tile" id="t-tz"></section>
+  <section class="tile" id="t-map">
+    <div class="ttl">Campuses</div>
+    <div id="map-wrap"><svg id="map" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet"></svg></div>
+    <div class="legend" id="map-legend"></div>
+    <div id="map-refresh"></div>
+  </section>
+
+
+  <!-- TOC Readiness removed from the default state; Feed & system health is now its own tile -->
+  <section class="tile" id="t-feed"><div class="half" id="ready-bot" style="flex:1"></div></section>
+
+  <section class="tile" id="t-list"><h2>Campus list <span id="list-n"></span></h2><div id="list-card" hidden></div><div id="list-scroll" class="autoscroll"><div id="list-pin" class="cgh" aria-hidden="true" hidden></div><div id="list-inner"></div></div></section>
+
+  <section class="tile" id="t-peer"><h2>TOC peer status</h2><div id="peer"></div></section>
+
+  <section class="tile" id="t-drone"><h2>Drone readiness</h2><div id="drone" style="display:flex;flex-direction:column;flex:1"></div></section>
+
+  <section class="tile" id="t-news"><h2>Local news <span>Channel 7 News</span></h2>
+    <div class="screen" id="news"><video class="vid" src="news-default.mp4" muted loop playsinline autoplay preload="auto"></video><div class="mt">&#128263; Muted</div><div class="fb"><b>No signal</b><span>Check the source in TOC settings</span></div></div>
+  </section>
+
+  <section class="tile" id="t-sites" style="padding:0"><div class="half" id="site-a" style="flex:1"></div></section>
+
+  <section class="tile" id="t-sched"><div class="half" id="sched-a" style="flex:1"></div></section>
+
+  <section class="tile" id="t-comms"><h2>Independent comms</h2><div id="comms"></div></section>
+
+  <!-- Campus List and Weather tiles removed from the default state -->
+
+  <section class="tile" id="t-rota"><h2>Team rotation <span id="rota-meta"></span></h2><div id="rota-st"></div></section>
+</main>
+
+<footer id="demo-toggle"><span>Demo view</span><div class="seg" role="group" aria-label="Demo state"><button type="button" data-m="default" aria-pressed="true">Default</button><button type="button" data-m="active" aria-pressed="false">Active</button></div><span id="stage-slot"></span><button type="button" class="sw" id="alarm-sw" role="switch" aria-checked="false"><span class="trk"></span>Alarm triggered</button><span id="src-slot"></span><span id="alt-slot"></span><button type="button" class="sw" id="net-sw" role="switch" aria-checked="false"><span class="trk"></span>Internet outage</button><span id="shift-slot"></span></footer>
+
+<div id="stage-frame" hidden></div>
+
+<script>
+/* =====================================================================
+   ALL DATA BELOW IS HARDCODED PLACEHOLDER / MOCK. NOTHING IS A LIVE FEED.
+   Demo controls: footer only (state, stage, alarm, TOC). No keyboard shortcuts.
+   ===================================================================== */
+
+// ---- seeded RNG so a mock set is reproducible (?seed=12) ----
+let seed = +(new URLSearchParams(location.search).get('seed')) || 7, longNames = false;
+const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+const pick = a => a[Math.floor(rnd() * a.length)];
+const pad = n => String(n).padStart(2, '0');
+
+// ---- placeholder campus pool: [name, lon, lat, IANA tz] ----
+// [name, lon, lat, tz, state, town]. Town = real city at that lon/lat ("City, ST"), used by the header weather strip. State = real-world state the lon/lat falls in (plain lookup for map labels; "DC" has no state polygon so is never labeled).
+const POOL = [
+ ["Godby High School",-84.28,30.44,"America/New_York","FL","Tallahassee, FL"],["Leon County Middle",-84.25,30.47,"America/New_York","FL","Tallahassee, FL"],["Rickards High",-84.31,30.40,"America/New_York","FL","Tallahassee, FL"],
+ ["Lakeview Academy",-81.66,30.33,"America/New_York","FL","Jacksonville, FL"],["Orange Grove Elementary",-81.38,28.54,"America/New_York","FL","Orlando, FL"],["Bayshore High",-82.46,27.95,"America/New_York","FL","Tampa, FL"],
+ ["Peachtree Ridge High",-84.39,33.75,"America/New_York","GA","Atlanta, GA"],["Decatur Central",-84.30,33.77,"America/New_York","GA","Decatur, GA"],["Charleston Prep",-79.93,32.78,"America/New_York","SC","Charleston, SC"],
+ ["Piedmont Charter",-80.84,35.23,"America/New_York","NC","Charlotte, NC"],["Capitol Heights High",-77.00,38.90,"America/New_York","DC","Washington, DC"],["Roosevelt Middle",-75.16,39.95,"America/New_York","PA","Philadelphia, PA"],
+ ["Hudson Valley High",-73.95,41.70,"America/New_York","NY","Poughkeepsie, NY"],["Brookline Academy",-71.12,42.34,"America/New_York","MA","Brookline, MA"],["Fenway Elementary",-71.10,42.35,"America/New_York","MA","Boston, MA"],
+ ["Buckeye Central",-83.00,39.96,"America/New_York","OH","Columbus, OH"],["Lake Erie Prep",-81.69,41.50,"America/New_York","OH","Cleveland, OH"],["Motor City High",-83.05,42.33,"America/Detroit","MI","Detroit, MI"],
+ ["Music City Academy",-86.78,36.16,"America/Chicago","TN","Nashville, TN"],["Bluegrass High",-84.50,38.04,"America/New_York","KY","Lexington, KY"],["Magnolia Middle",-90.18,32.30,"America/Chicago","MS","Jackson, MS"],
+ ["Gulf Coast High",-88.04,30.69,"America/Chicago","AL","Mobile, AL"],["Crescent City Prep",-90.07,29.95,"America/Chicago","LA","New Orleans, LA"],["Lone Star Elementary",-97.74,30.27,"America/Chicago","TX","Austin, TX"],
+ ["Trinity River High",-96.80,32.78,"America/Chicago","TX","Dallas, TX"],["Bayou City Academy",-95.37,29.76,"America/Chicago","TX","Houston, TX"],["Alamo Heights High",-98.49,29.42,"America/Chicago","TX","San Antonio, TX"],
+ ["Prairie View Middle",-94.58,39.10,"America/Chicago","MO","Kansas City, MO"],["Gateway Arch Prep",-90.20,38.63,"America/Chicago","MO","St. Louis, MO"],["Windy City High",-87.63,41.88,"America/Chicago","IL","Chicago, IL"],
+ ["Badger Ridge High",-89.40,43.07,"America/Chicago","WI","Madison, WI"],["Twin Cities Academy",-93.27,44.98,"America/Chicago","MN","Minneapolis, MN"],["Heartland Elementary",-96.00,41.26,"America/Chicago","NE","Omaha, NE"],
+ ["Sooner Central High",-97.52,35.47,"America/Chicago","OK","Oklahoma City, OK"],["Front Range High",-104.99,39.74,"America/Denver","CO","Denver, CO"],["Red Rocks Middle",-105.20,39.70,"America/Denver","CO","Lakewood, CO"],
+ ["Wasatch Prep",-111.89,40.76,"America/Denver","UT","Salt Lake City, UT"],["Sandia Mesa High",-106.65,35.08,"America/Denver","NM","Albuquerque, NM"],["Camelback High",-112.07,33.45,"America/Phoenix","AZ","Phoenix, AZ"],
+ ["Sonoran Academy",-110.97,32.22,"America/Phoenix","AZ","Tucson, AZ"],["Gem State Middle",-116.20,43.62,"America/Boise","ID","Boise, ID"],["Big Sky High",-112.04,46.59,"America/Denver","MT","Helena, MT"],
+ ["Silver State Prep",-115.14,36.17,"America/Los_Angeles","NV","Las Vegas, NV"],["Bay Bridge High",-122.27,37.80,"America/Los_Angeles","CA","Oakland, CA"],["Mission District Elementary",-122.42,37.76,"America/Los_Angeles","CA","San Francisco, CA"],
+ ["Golden Gate Academy",-122.45,37.78,"America/Los_Angeles","CA","San Francisco, CA"],["Sunset Middle",-118.24,34.05,"America/Los_Angeles","CA","Los Angeles, CA"],["Harbor High School",-117.16,32.72,"America/Los_Angeles","CA","San Diego, CA"],
+ ["Rose City High",-122.68,45.52,"America/Los_Angeles","OR","Portland, OR"],["Emerald City Prep",-122.33,47.61,"America/Los_Angeles","WA","Seattle, WA"],["Cascade Elementary",-117.43,47.66,"America/Los_Angeles","WA","Spokane, WA"],
+ ["Sacramento Valley High",-121.49,38.58,"America/Los_Angeles","CA","Sacramento, CA"]
+];
+const LONGER = ["Dr. Martin Luther King Jr. Memorial Magnet Academy","Saint Francis Xavier College Preparatory","Thomas Jefferson Regional Technical Institute"];
+
+let D = {}; // current mock data set
+// MOCK: why a campus lost its connection to the TOC, [reason, detail]. Shown on the Campus list card while it's disconnected.
+const CAUSES = [
+  ['Site gateway offline', 'No heartbeat from the campus gateway'],
+  ['Internet provider outage', 'Provider reports a service outage in the area'],
+  ['Power loss on campus', 'Network equipment lost power'],
+  ['Network switch fault', 'Core switch in the server room not responding'],
+  ['Firewall blocking uplink', 'Traffic to the TOC rejected after a config change']
+];
+
+function makeData(){
+  const n = 26 + Math.floor(rnd() * 14);
+  const pool = POOL.slice().sort(() => rnd() - .5).slice(0, n);
+  const now = Date.now();
+  const campuses = pool.map((c,i) => {
+    const stale = rnd() < .12;
+    let name = c[0];
+    if (longNames && i < 3) name = LONGER[i];
+    return { name, lon:c[1], lat:c[2], tz:c[3], st:c[4], town:c[5], stale, last: now - (stale ? (6+rnd()*50)*60000 : rnd()*70000) };
+  });
+  // Planned sites (bell times, calendar status)
+  const sites = [
+    { name:"Godby High School", loc:"Tallahassee, FL", tz:"America/New_York", bell:"7:40 AM", rel:"in 3h 12m", cal:"Calendar confirmed", ok:true },
+    { name:"Bayshore High", loc:"Tampa, FL", tz:"America/New_York", bell:"8:05 AM", rel:"in 3h 37m", cal:"Calendar pending", ok:false },
+    { name:"Windy City High", loc:"Chicago, IL", tz:"America/Chicago", bell:"7:55 AM", rel:"in 4h 02m", cal:"Calendar confirmed", ok:true }
+  ];
+  // MOCK team schedule (today, shown in CT): built from load time so there is always one event in progress and several upcoming.
+  const q = m => Math.round((now + m * 60000) / 300000) * 300000, ev = (title, kind, where, a, len) => ({ title, kind, where, start: q(a), end: q(a + len) });
+  const schedule = [
+    ev('Drone flight training', 'Training', 'Austin HQ', -20, 60),
+    ev('Incident walkthrough', 'Presentation', 'Room 2A', 40, 45),
+    ev('Weekly team sync', 'Meeting', 'TOC floor', 120, 30),
+    ev('Windy City onboarding', 'Training', 'Video call', 210, 60),
+    ev('Shift handover review', 'Review', 'TOC floor', 300, 30)
+  ];
+  const cams = 87, camsUp = rnd() < .75 ? 86 : 87; // fleet-wide scale: ~3 cameras per campus across 29 campuses
+  D = {
+    campuses, sites, schedule,
+    refreshed: Math.floor(rnd()*25)+3, refreshedAt: 0, // refreshedAt set below
+    health:{ cams:[camsUp,cams], drones:[111,116], beacon:["Fresh · 12s", "ok"], flight:["Nominal","ok"] },
+    peer:[["TOC 1 display","Online","ok"],["TOC 2 display","Online","ok"],["Peer link","Connected","ok"],["Internet sources", rnd()<.85?"Reachable":"Unreachable", rnd()<.85?"ok":"bad"]],
+    // MOCK idle nests, one per campus (rotates in default state). Lane shape: null = free; nest = one combined health flag.
+    // lane `batt` = docked pack VOLTAGE (6-cell, 19.0-25.2 V), shown as text like the Active lanes; never percent
+    // MOCK per campus: `nests` = drone nests on site, `drones` = [connected, total] (default Drone readiness)
+    droneSites:[
+      { campus:'Godby High School', loc:'Tallahassee, FL', nests:8, drones:[30,32], boxes:['E','B','D','A'], /* same boxes as the Active incident lanes L1-L4 */ lanes:[{id:'GA-101',charge:'Charging',batt:22.8,fw:'2.4.1'},{id:'GA-102',charge:'Parked',batt:25.2,fw:'2.4.1'},{id:'GA-103',charge:'Charging',batt:20.7,fw:'2.4.1'},null], nest:{inUse:0,types:[['Outdoor',0],['Indoor',0]],pending:0,health:'ok'} },
+      { campus:'Bayshore High', loc:'Tampa, FL', nests:9, drones:[36,36], boxes:['A','B','C','D'], lanes:[{id:'GA-204',charge:'Parked',batt:25.2,fw:'2.4.1'},{id:'GA-205',charge:'Parked',batt:25.2,fw:'2.4.1'},null,null], nest:{inUse:0,types:[['Outdoor',0],['Indoor',0]],pending:1,health:'ok'} },
+      { campus:'Windy City High', loc:'Chicago, IL', nests:12, drones:[45,48], boxes:['A','B','C','D'], lanes:[{id:'GA-311',charge:'Charging',batt:24.0,fw:'2.4.1'},{id:'GA-312',charge:'Charging',batt:21.7,fw:'2.4.1'},{id:'GA-313',charge:'Parked',batt:25.2,fw:'2.4.1'},{id:'GA-314',charge:'Charging',batt:19.7,fw:'2.4.1'}], nest:{inUse:0,types:[['Outdoor',0],['Indoor',0]],pending:0,health:'warn'} }
+    ],
+    comms:[{toc:"TOC 1",ch:"Radio · Ch 4 backup",checked:"Manual check logged 06:48"},{toc:"TOC 2",ch:null}],
+    // MOCK caution notes per campus (static reference data; the tile only auto-scrolls when the notes don't fit). Type -> CAUTION_TYPE icon; text up to 120 characters.
+    // Windy City has none, so it shows the empty state; ?notes=0 empties the incident campus for review.
+    caution:{
+      'Godby High School':[
+        ['glass','Hurricane glass on Building 1 exterior windows'],
+        ['doors','No door windows in Building 2 east wing'],
+        ['transom','Transoms above Building 1 science-wing doors'],
+        ['sro','SRO on site weekdays, 7 AM to 4 PM'],
+        ['other','Gym roof hatch locks from inside only']],
+      'Bayshore High':[
+        ['sro','Two security officers on site, radio ch 2'],
+        ['doors','No door windows in portables P1 to P6']],
+      'Windy City High':[]
+    },
+  };
+  D.health.beacon = ["Fresh · "+(8+Math.floor(rnd()*20))+"s","ok"];
+  if (D.peer[3][1]==="Unreachable") D.peer[3][2]="bad";
+  D.incident = makeIncident();
+  // MOCK weather, one record per town (header weather strip). Generated AFTER everything else so the seeded values above don't shift.
+  // Temp falls with latitude; icon from the 3 IC glyphs. The 3 drone-site towns keep their earlier fixed values.
+  const WX_FIXED = { 'Tallahassee, FL': { t: 79, k: 'sun' }, 'Tampa, FL': { t: 84, k: 'part' }, 'Chicago, IL': { t: 54, k: 'rain' } };
+  const lat = {}; POOL.forEach(c => { lat[c[5]] = c[2]; });
+  D.wx = {};
+  [...new Set([...POOL.map(c => c[5]), ...D.droneSites.map(d => d.loc), D.incident.loc])].sort().forEach(town => {
+    const r = rnd(), k = r < .5 ? 'sun' : r < .8 ? 'part' : 'rain';
+    D.wx[town] = WX_FIXED[town] || { t: Math.round(92 - ((lat[town] || 35) - 25) * 2.2 + rnd() * 6 - 3), k };
+  });
+  // MOCK reason for each disconnected campus (Campus list card). Generated last, same reason as the weather.
+  D.campuses.filter(c => c.stale).forEach(c => { c.cause = CAUSES[Math.floor(rnd() * CAUSES.length)]; });
+}
+
+// ---- map projection (Albers equal-area conic, CONUS) ----
+const OUTLINE = [[-124.7,48.4],[-122.8,49],[-95.2,49],[-94.6,48.7],[-93,48.6],[-89.6,48],[-84.8,46.9],[-83,46],[-82.4,43.0],[-83.1,42.0],[-79,42.8],[-79,43.3],[-76.5,43.6],[-75,45],[-71.5,45],[-70.8,47.3],[-69.2,47.4],[-67.8,47.1],[-67,44.8],[-70.2,43.6],[-70.7,42.7],[-70,41.8],[-71.5,41.3],[-73.8,40.9],[-74,40.4],[-74.1,39.5],[-75.5,38.4],[-75.9,37],[-76,36.9],[-75.5,35.3],[-77.5,34.5],[-79,33.4],[-81,31.9],[-81.3,30],[-80,26.9],[-80.4,25.2],[-81.2,25.2],[-82.2,26.8],[-82.8,28],[-83.5,29.7],[-85,29.6],[-86.5,30.4],[-89,30.2],[-89.4,29],[-90.8,29.1],[-93.8,29.7],[-95,29],[-97.2,27.6],[-97.4,25.9],[-99.1,26.4],[-100.6,28.5],[-101.4,29.8],[-102.4,29.8],[-103.2,29],[-104.5,29.6],[-106.5,31.8],[-108.2,31.8],[-108.2,31.3],[-111,31.3],[-114.8,32.5],[-117.1,32.5],[-118.5,34],[-120.6,34.5],[-121.9,36.6],[-122.5,37.8],[-123.8,39.5],[-124.4,40.4],[-124.1,43],[-124,46.2]];
+// Simplified state boundaries (low-vertex background reference, NOT survey-grade). Source: us-atlas states-10m (US Census cartographic
+// boundaries via Natural Earth-style TopoJSON, public domain), decoded, Douglas-Peucker simplified (~0.07 deg) and trimmed to the 48 contiguous
+// states (outer rings only, tiny islands dropped). Each entry: abbr:[name, labelLon, labelLat, [flat lon,lat rings]]. Label points are the
+// interior point farthest from the boundary, precomputed. Lon/lat, drawn through the same P() projection as OUTLINE.
+const STATES = {
+  AL:["Alabama",-86.77,32.61,[[-88.2,35,-85.61,34.98,-85.19,32.87,-85,32.32,-84.89,32.26,-85.06,32.14,-85.14,31.84,-85.05,31.52,-85.11,31.19,-85,31,-87.6,31,-87.63,30.85,-87.4,30.67,-87.37,30.44,-87.52,30.28,-88,30.23,-87.76,30.29,-88.01,30.68,-88.14,30.32,-88.4,30.37,-88.47,31.89,-88.1,34.89,-88.2,35]]],
+  AR:["Arkansas",-92.63,34.75,[[-94.62,36.5,-90.15,36.5,-90.08,36.27,-90.38,36,-89.73,36,-89.66,35.89,-89.96,35.72,-89.85,35.64,-89.92,35.51,-90.03,35.55,-90.06,35.4,-90.09,35.48,-90.17,35.42,-90.08,35.38,-90.17,35.3,-90.06,35.14,-90.31,35,-90.25,34.91,-90.48,34.89,-90.45,34.74,-90.55,34.78,-90.47,34.67,-90.59,34.67,-90.57,34.43,-90.94,34.22,-90.81,34.16,-91.08,33.98,-90.99,33.79,-91.15,33.73,-91.03,33.67,-91.22,33.69,-91.13,33.6,-91.23,33.44,-91.08,33.46,-91.14,33.3,-91.04,33.27,-91.2,33.11,-91.17,33,-94.04,33.02,-94.05,33.55,-94.05,33.55,-94.49,33.64,-94.43,35.39,-94.62,36.5]]],
+  AZ:["Arizona",-111.64,34.45,[[-114.72,32.72,-114.47,32.85,-114.52,33.03,-114.71,33.09,-114.73,33.31,-114.53,33.55,-114.54,33.93,-114.13,34.26,-114.39,34.46,-114.63,35,-114.57,35.2,-114.76,36.09,-114.37,36.14,-114.15,36.02,-114.05,36.19,-114.05,37,-109.04,37,-109.05,31.33,-111.08,31.33,-114.81,32.49,-114.72,32.72]]],
+  CA:["California",-121.84,40.11,[[-124.21,42,-120,42,-120,41.99,-120,39,-114.63,35,-114.39,34.46,-114.13,34.26,-114.54,33.93,-114.53,33.55,-114.73,33.31,-114.71,33.09,-114.52,33.03,-114.47,32.85,-114.72,32.72,-117.12,32.53,-117.5,33.33,-118.09,33.73,-118.41,33.74,-118.54,34.04,-119.13,34.1,-119.56,34.41,-120.47,34.45,-120.62,34.55,-120.63,35.12,-120.86,35.21,-120.91,35.45,-121.88,36.29,-121.97,36.57,-121.82,36.68,-121.86,36.93,-122.11,36.96,-122.4,37.2,-122.52,37.78,-122.41,37.81,-122.36,37.59,-122.05,37.46,-122.43,37.96,-122.3,38.11,-122.49,38.11,-122.44,37.88,-122.53,37.82,-123.01,38,-122.97,38.25,-123.74,38.95,-123.85,39.83,-124.36,40.26,-124.41,40.44,-124.11,41.03,-124.06,41.44,-124.26,41.78,-124.21,42]]],
+  CO:["Colorado",-106.95,39,[[-109.05,41,-104.05,41,-102.05,41,-102.05,40,-102.04,36.99,-103,37,-109.04,37,-109.05,41]]],
+  CT:["Connecticut",-73.1,41.65,[[-73.49,42.05,-71.8,42.01,-71.86,41.32,-72.91,41.29,-73.66,40.98,-73.73,41.1,-73.48,41.21,-73.49,42.05]]],
+  DE:["Delaware",-75.46,38.73,[[-75.79,39.72,-75.66,39.82,-75.42,39.8,-75.51,39.69,-75.61,39.62,-75.59,39.46,-75.4,39.25,-75.31,38.92,-75.1,38.8,-75.05,38.45,-75.69,38.46,-75.79,39.72]]],
+  FL:["Florida",-81.74,28.71,[[-85,31,-84.86,30.71,-82.21,30.57,-82.17,30.36,-82.04,30.37,-82.04,30.75,-81.95,30.83,-81.44,30.71,-81.26,29.81,-80.57,28.59,-80.57,28.1,-80.03,26.8,-80.13,25.77,-80.3,25.62,-80.36,25.33,-80.18,25.49,-80.66,24.9,-80.44,25.19,-81.14,25.16,-81.13,25.38,-81.29,25.69,-81.69,25.85,-81.87,26.38,-82.06,26.55,-82.11,26.48,-82.18,26.68,-82.09,26.67,-82.07,26.96,-82.27,26.72,-82.74,27.54,-82.57,27.61,-82.41,27.9,-82.55,27.85,-82.55,27.97,-82.69,28.03,-82.59,27.82,-82.73,27.61,-82.85,27.86,-82.86,28.22,-82.78,28.06,-82.67,28.44,-82.69,28.91,-82.8,29.15,-83.05,29.13,-83.64,29.89,-84.02,30.1,-84.27,30.1,-84.34,29.9,-85.12,29.72,-85.01,29.62,-84.69,29.76,-85.05,29.59,-85.35,29.66,-85.42,29.84,-85.34,29.69,-85.3,29.81,-85.43,29.95,-86.3,30.36,-87.52,30.28,-87.37,30.44,-87.4,30.67,-87.63,30.85,-87.6,31,-85,31]]],
+  GA:["Georgia",-83.25,32.33,[[-85.61,34.98,-84.32,34.99,-83.11,35,-83.34,34.68,-82.88,34.48,-82.56,33.94,-81.49,33.01,-81.41,32.62,-81.2,32.47,-81.11,32.11,-80.89,32.03,-81.2,31.72,-81.13,31.62,-81.26,31.55,-81.18,31.52,-81.29,31.21,-81.49,30.98,-81.41,30.98,-81.44,30.71,-81.95,30.83,-82.04,30.75,-82.04,30.37,-82.17,30.36,-82.21,30.57,-84.86,30.71,-85,31,-85.11,31.19,-85.05,31.52,-85.14,31.84,-85.06,32.14,-84.89,32.26,-85,32.32,-85.19,32.87,-85.61,34.98]]],
+  IA:["Iowa",-94.53,42.02,[[-96.45,43.5,-91.22,43.5,-91.06,43.25,-91.18,43.13,-91.06,42.74,-90.71,42.63,-90.64,42.51,-90.16,42.12,-90.18,41.81,-90.46,41.52,-91.04,41.42,-91.11,41.24,-90.95,41.1,-90.97,40.92,-91.12,40.67,-91.36,40.6,-91.42,40.38,-91.73,40.61,-95.76,40.59,-95.89,40.72,-95.81,40.9,-95.93,41.46,-96.09,41.53,-96.07,41.8,-96.35,42.17,-96.45,42.49,-96.63,42.77,-96.44,43.12,-96.56,43.22,-96.6,43.5,-96.45,43.5]]],
+  ID:["Idaho",-114.92,43.75,[[-116.92,46,-117.06,46.37,-117.03,49,-116.05,49,-116.05,47.98,-115.72,47.7,-115.74,47.54,-115.63,47.48,-115.76,47.42,-115.33,47.26,-114.77,46.7,-114.33,46.66,-114.52,46.13,-114.39,45.89,-114.57,45.77,-114.55,45.56,-114.35,45.46,-113.99,45.7,-113.81,45.6,-113.74,45.33,-113.45,45.06,-113.46,44.87,-113.13,44.77,-113,44.45,-112.85,44.36,-112.78,44.48,-112.39,44.45,-112.29,44.57,-111.47,44.54,-111.49,44.71,-111.39,44.76,-111.05,44.47,-111.05,42,-114.04,41.99,-117.03,42,-117.03,43.81,-116.9,44.15,-117.22,44.29,-117.24,44.4,-116.46,45.6,-116.92,46]]],
+  IL:["Illinois",-89.2,40.3,[[-91.42,40.38,-91.36,40.6,-91.12,40.67,-90.97,40.92,-90.95,41.1,-91.11,41.24,-91.04,41.42,-90.46,41.52,-90.18,41.81,-90.16,42.12,-90.64,42.51,-87.8,42.49,-87.84,42.3,-87.52,41.71,-87.53,39.35,-87.64,39.17,-87.49,38.74,-87.85,38.28,-87.99,38.25,-87.93,38.15,-88.04,38.05,-88.01,37.89,-88.1,37.9,-88.03,37.8,-88.16,37.66,-88.08,37.47,-88.48,37.39,-88.46,37.07,-88.98,37.23,-89.17,37.07,-89.13,36.98,-89.38,37.04,-89.52,37.29,-89.42,37.4,-89.52,37.69,-90.36,38.21,-90.11,38.85,-90.41,38.96,-90.59,38.87,-90.72,39.23,-91.37,39.73,-91.51,40.18,-91.42,40.38]]],
+  IN:["Indiana",-86.21,39.87,[[-87.52,41.71,-87.22,41.62,-86.82,41.76,-84.81,41.7,-84.82,39.11,-84.9,39.05,-84.81,38.79,-85.45,38.71,-85.42,38.54,-85.83,38.28,-86.05,37.96,-86.37,38.19,-86.33,38.13,-86.46,38.1,-86.64,37.84,-86.79,37.99,-87.13,37.78,-87.6,37.97,-87.63,37.83,-87.9,37.92,-87.9,37.81,-88.03,37.8,-88.1,37.9,-88.01,37.89,-88.04,38.05,-87.93,38.15,-87.99,38.25,-87.85,38.28,-87.49,38.74,-87.64,39.17,-87.53,39.35,-87.52,41.71]]],
+  KS:["Kansas",-100.37,38.5,[[-102.05,40,-95.31,40,-95.14,39.88,-94.93,39.89,-94.87,39.73,-95.1,39.53,-94.83,39.22,-94.59,39.16,-94.62,37,-102.04,36.99,-102.05,40]]],
+  KY:["Kentucky",-84.58,37.74,[[-89.13,36.98,-89.17,37.07,-88.98,37.23,-88.46,37.07,-88.48,37.39,-88.08,37.47,-88.16,37.66,-88.03,37.8,-87.9,37.81,-87.9,37.92,-87.63,37.83,-87.6,37.97,-87.13,37.78,-86.79,37.99,-86.64,37.84,-86.46,38.1,-86.33,38.13,-86.37,38.19,-86.05,37.96,-85.83,38.28,-85.42,38.54,-85.45,38.71,-84.81,38.79,-84.9,39.05,-84.82,39.11,-84.44,39.11,-84.21,38.81,-83.66,38.63,-83.52,38.7,-83.16,38.62,-82.89,38.76,-82.85,38.59,-82.6,38.42,-82.64,38.14,-82.5,37.93,-82.29,37.67,-81.97,37.54,-82.72,37.12,-83.14,36.74,-83.68,36.6,-88.07,36.68,-88.05,36.5,-89.42,36.5,-89.37,36.62,-89.26,36.56,-89.16,36.67,-89.13,36.98]]],
+  LA:["Louisiana",-92.66,31.79,[[-94.04,33.02,-91.17,33,-91.21,32.92,-91.06,32.92,-91.16,32.81,-91.06,32.73,-91.14,32.6,-91.03,32.65,-91.08,32.56,-90.99,32.49,-91.11,32.48,-90.88,32.36,-90.99,32.22,-91.16,32.2,-91.01,32.16,-91.16,32.06,-91.09,31.99,-91.26,31.81,-91.34,31.85,-91.36,31.77,-91.26,31.76,-91.4,31.62,-91.5,31.64,-91.41,31.57,-91.52,31.52,-91.47,31.37,-91.58,31.4,-91.51,31.28,-91.64,31.27,-91.56,31.07,-91.64,31,-89.75,31,-89.85,30.66,-89.53,30.18,-89.84,29.95,-89.61,29.87,-89.48,30.08,-89.37,30.05,-89.37,29.91,-89.22,29.97,-89.36,29.85,-89.3,29.76,-89.39,29.79,-89.43,29.66,-89.53,29.73,-89.49,29.62,-89.67,29.64,-89.6,29.58,-89.68,29.62,-89.68,29.53,-89,29.18,-89.14,28.99,-89.25,29.08,-89.42,28.93,-89.28,29.18,-89.39,29.12,-89.84,29.32,-90.22,29.09,-90.43,29.35,-90.58,29.31,-90.87,29.06,-91.34,29.3,-91.27,29.36,-91.12,29.25,-91.13,29.34,-91.34,29.39,-91.36,29.51,-91.46,29.47,-91.65,29.63,-91.62,29.74,-91.86,29.71,-91.83,29.83,-92.2,29.75,-92.02,29.62,-92.32,29.53,-93.18,29.77,-93.84,29.69,-93.93,29.8,-93.7,30.07,-93.74,30.54,-93.52,31.02,-93.84,31.6,-93.82,31.77,-94.04,31.99,-94.04,33.02]]],
+  MA:["Massachusetts",-71.89,42.36,[[-73.26,42.75,-72.46,42.73,-71.29,42.7,-70.82,42.87,-70.78,42.69,-70.6,42.66,-70.87,42.55,-71.01,42.28,-70.72,42.21,-70.64,42.09,-70.7,41.99,-70.41,41.74,-70,41.81,-70.09,42.03,-70.24,42.07,-70.12,42.07,-69.93,41.69,-69.99,41.54,-70,41.67,-70.35,41.64,-70.95,41.41,-70.66,41.54,-70.63,41.71,-70.72,41.74,-70.95,41.51,-71.12,41.5,-71.2,41.68,-71.22,41.71,-71.38,42.02,-71.8,42.01,-73.49,42.05,-73.26,42.75]]],
+  MD:["Maryland",-76.94,39.36,[[-79.48,39.72,-75.79,39.72,-75.69,38.46,-75.05,38.45,-75.24,38.03,-75.67,37.95,-75.89,37.92,-75.83,38.13,-75.96,38.14,-75.85,38.21,-75.86,38.36,-75.97,38.25,-76,38.37,-76.13,38.23,-76.34,38.49,-76.24,38.63,-76.03,38.57,-76.26,38.74,-76.35,38.69,-76.2,38.93,-76.38,38.85,-76.3,39.03,-76.16,39,-76.15,39.09,-76.24,39.03,-76.28,39.15,-76.18,39.32,-76,39.37,-75.97,39.56,-76.22,39.35,-76.25,39.45,-76.28,39.3,-76.36,39.39,-76.44,39.2,-76.58,39.26,-76.39,39.01,-76.56,38.77,-76.32,38.04,-76.8,38.24,-76.83,38.35,-76.84,38.25,-76.92,38.29,-77.02,38.45,-77.25,38.38,-77.13,38.64,-77.04,38.79,-76.91,38.89,-77.04,38.99,-77.12,38.93,-77.52,39.12,-77.46,39.23,-77.56,39.3,-77.72,39.32,-77.83,39.6,-78.18,39.7,-78.47,39.52,-78.78,39.62,-79.49,39.21,-79.48,39.72]]],
+  ME:["Maine",-69.03,45.7,[[-70.7,43.06,-70.99,43.38,-71.08,45.31,-70.86,45.23,-70.78,45.43,-70.64,45.38,-70.72,45.52,-70.26,45.89,-70.29,46.19,-70.06,46.42,-70,46.69,-69.18,47.46,-69.04,47.43,-69.05,47.26,-68.9,47.18,-68.23,47.35,-67.79,47.07,-67.8,45.68,-67.45,45.6,-67.49,45.28,-67.34,45.13,-67.16,45.16,-66.99,44.91,-66.98,44.81,-67.26,44.6,-67.41,44.68,-67.59,44.45,-67.77,44.55,-68.05,44.33,-68.18,44.38,-68.19,44.24,-68.4,44.25,-68.46,44.34,-68.36,44.39,-68.48,44.43,-68.6,44.01,-68.68,44.26,-68.83,44.31,-68.78,44.49,-69,44.43,-69.08,43.97,-69.32,43.86,-69.3,43.93,-69.43,43.96,-69.5,43.84,-70.17,43.68,-70.7,43.06]]],
+  MI:["Michigan",-84.95,43.03,[[-86.82,41.76,-86.36,42.24,-86.22,42.59,-86.23,43.02,-86.54,43.62,-86.44,43.79,-86.51,44.05,-86.27,44.35,-86.26,44.69,-85.54,45.21,-85.65,44.85,-85.6,44.77,-85.47,44.99,-85.53,44.75,-85.39,44.93,-85.37,45.27,-84.92,45.39,-85.12,45.57,-84.94,45.71,-85.01,45.76,-84.77,45.79,-83.5,45.36,-83.27,45.02,-83.45,45.04,-83.27,44.71,-83.33,44.34,-83.54,44.25,-83.58,44.06,-83.88,43.96,-83.91,43.67,-83.65,43.6,-83.35,43.87,-83.41,43.92,-82.91,44.07,-82.64,43.85,-82.42,42.97,-82.52,42.61,-82.69,42.52,-82.62,42.67,-82.8,42.65,-82.9,42.39,-83.07,42.32,-83.13,42.09,-83.45,41.73,-84.81,41.7,-86.82,41.76],[-90.42,46.57,-88.96,47.01,-88.39,47.38,-87.98,47.48,-87.71,47.4,-87.96,47.39,-88.23,47.2,-88.5,46.76,-88.14,46.97,-88.28,46.83,-87.82,46.89,-87.35,46.5,-87.02,46.53,-86.88,46.44,-86.14,46.67,-85.17,46.76,-84.95,46.77,-85.03,46.48,-84.59,46.41,-84.13,46.53,-84.12,46.23,-84.25,46.18,-83.87,45.99,-83.77,46.02,-83.82,46.1,-83.58,46.09,-83.51,45.93,-84.38,45.93,-84.66,46.05,-84.75,45.84,-85.01,46.01,-85.51,46.09,-85.7,45.96,-86.28,45.94,-86.62,45.61,-86.72,45.67,-86.54,45.89,-86.78,45.85,-86.96,45.67,-87.02,45.84,-87.59,45.1,-87.74,45.2,-87.66,45.37,-87.85,45.34,-87.85,45.34,-87.78,45.67,-88.14,45.82,-88.1,45.92,-90.12,46.34,-90.35,46.54,-90.35,46.54,-90.42,46.57]]],
+  MN:["Minnesota",-94.71,46.74,[[-97.23,49,-95.15,49,-95.15,49.38,-94.96,49.37,-94.82,49.29,-94.64,48.74,-93.83,48.63,-93.79,48.52,-92.99,48.62,-92.63,48.54,-92.71,48.46,-92.51,48.45,-92.37,48.22,-92.26,48.35,-92.06,48.36,-91.57,48.04,-90.89,48.25,-90.76,48.1,-89.49,48.01,-90.87,47.56,-92.09,46.79,-92.01,46.71,-92.29,46.66,-92.29,46.07,-92.86,45.72,-92.89,45.58,-92.65,45.44,-92.76,45.29,-92.81,44.77,-91.44,44,-91.25,43.77,-91.22,43.5,-96.45,43.5,-96.45,45.3,-96.86,45.61,-96.56,45.94,-96.6,46.33,-96.8,46.66,-96.86,47.61,-97.13,48.14,-97.1,48.69,-97.23,49]]],
+  MO:["Missouri",-92.78,38.42,[[-95.76,40.59,-91.73,40.61,-91.42,40.38,-91.51,40.18,-91.37,39.73,-90.72,39.23,-90.59,38.87,-90.41,38.96,-90.11,38.85,-90.36,38.21,-89.52,37.69,-89.42,37.4,-89.52,37.29,-89.38,37.04,-89.13,36.98,-89.16,36.67,-89.26,36.56,-89.37,36.62,-89.42,36.5,-89.49,36.5,-89.56,36.57,-89.54,36.5,-89.51,36.37,-89.61,36.31,-89.53,36.25,-89.69,36.25,-89.6,36.12,-89.73,36,-90.38,36,-90.08,36.27,-90.15,36.5,-94.62,36.5,-94.62,37,-94.59,39.16,-94.83,39.22,-95.1,39.53,-94.87,39.73,-94.93,39.89,-95.14,39.88,-95.31,40,-95.76,40.59]]],
+  MS:["Mississippi",-89.69,33.19,[[-91.17,33,-91.2,33.11,-91.04,33.27,-91.14,33.3,-91.08,33.46,-91.23,33.44,-91.13,33.6,-91.22,33.69,-91.03,33.67,-91.15,33.73,-90.99,33.79,-91.08,33.98,-90.81,34.16,-90.94,34.22,-90.57,34.43,-90.59,34.67,-90.47,34.67,-90.55,34.78,-90.45,34.74,-90.48,34.89,-90.25,34.91,-90.31,35,-88.2,35,-88.1,34.89,-88.47,31.89,-88.4,30.37,-89.29,30.3,-89.31,30.38,-89.53,30.18,-89.85,30.66,-89.75,31,-91.64,31,-91.56,31.07,-91.64,31.27,-91.51,31.28,-91.58,31.4,-91.47,31.37,-91.52,31.52,-91.41,31.57,-91.5,31.64,-91.4,31.62,-91.26,31.76,-91.36,31.77,-91.34,31.85,-91.26,31.81,-91.09,31.99,-91.16,32.06,-91.01,32.16,-91.16,32.2,-90.99,32.22,-90.88,32.36,-91.11,32.48,-90.99,32.49,-91.08,32.56,-91.03,32.65,-91.14,32.6,-91.06,32.73,-91.16,32.81,-91.06,32.92,-91.21,32.92,-91.17,33]]],
+  MT:["Montana",-112.15,46.91,[[-116.05,49,-104.05,49,-104.04,45.95,-104.06,45,-111.05,45,-111.05,44.47,-111.39,44.76,-111.49,44.71,-111.47,44.54,-112.29,44.57,-112.39,44.45,-112.78,44.48,-112.85,44.36,-113,44.45,-113.13,44.77,-113.46,44.87,-113.45,45.06,-113.74,45.33,-113.81,45.6,-113.99,45.7,-114.35,45.46,-114.55,45.56,-114.57,45.77,-114.39,45.89,-114.52,46.13,-114.33,46.66,-114.77,46.7,-115.33,47.26,-115.76,47.42,-115.63,47.48,-115.74,47.54,-115.72,47.7,-116.05,47.98,-116.05,49]]],
+  NC:["North Carolina",-78.39,35.36,[[-81.68,36.59,-75.87,36.55,-75.53,35.79,-75.99,36.53,-75.8,36.07,-75.92,36.24,-75.9,36.16,-76.02,36.19,-76.18,36.3,-76.06,36.16,-76.25,36.18,-76.22,36.1,-76.46,36.18,-76.3,36.1,-76.58,36.01,-76.68,36.04,-76.69,36.28,-76.7,35.96,-76.06,35.99,-76.04,35.67,-75.95,35.96,-75.81,35.96,-75.73,35.63,-76.14,35.33,-76.49,35.37,-76.59,35.51,-76.46,35.55,-76.63,35.51,-76.58,35.39,-77.03,35.49,-76.47,35.26,-76.8,34.96,-76.98,35,-76.76,34.92,-76.48,35.07,-76.29,35.01,-76.53,34.68,-76.62,34.78,-76.67,34.71,-76.52,34.65,-76.04,35.06,-76.54,34.59,-76.68,34.69,-77.03,34.66,-77.56,34.42,-77.83,34.16,-77.96,33.85,-78.54,33.85,-79.67,34.8,-80.8,34.82,-80.78,34.94,-80.93,35.11,-81.04,35.04,-81.04,35.15,-82.39,35.22,-83.11,35,-84.32,34.99,-84.29,35.22,-84.02,35.3,-83.88,35.52,-82.99,35.77,-82.63,36.07,-82.56,35.95,-82.35,36.12,-82.03,36.13,-81.91,36.3,-81.71,36.34,-81.68,36.59]]],
+  ND:["North Dakota",-98.62,47.47,[[-104.05,49,-97.23,49,-97.1,48.69,-97.13,48.14,-96.86,47.61,-96.8,46.66,-96.6,46.33,-96.56,45.94,-104.04,45.95,-104.05,49]]],
+  NE:["Nebraska",-100.12,41.5,[[-104.05,43,-98.5,43,-98.02,42.76,-97.85,42.87,-97.22,42.85,-96.45,42.49,-96.35,42.17,-96.07,41.8,-96.09,41.53,-95.93,41.46,-95.81,40.9,-95.89,40.72,-95.76,40.59,-95.31,40,-102.05,40,-102.05,41,-104.05,41,-104.05,43]]],
+  NH:["New Hampshire",-71.68,43.41,[[-71.5,45.01,-71.44,45.23,-71.08,45.31,-70.99,43.38,-70.7,43.06,-70.82,42.87,-71.29,42.7,-72.46,42.73,-72.56,42.85,-72.44,43.01,-72.38,43.57,-72.03,44.09,-72.03,44.32,-71.58,44.5,-71.63,44.75,-71.5,45.01]]],
+  NJ:["New Jersey",-74.61,40.81,[[-75.56,39.63,-75.51,39.69,-75.42,39.8,-74.72,40.15,-75.06,40.42,-75.2,40.69,-75.05,40.87,-75.14,40.97,-74.7,41.36,-73.91,41,-74.05,40.69,-74.07,40.66,-74.26,40.5,-73.98,40.45,-74.1,39.76,-74.86,38.94,-74.97,38.94,-74.89,39.16,-75.17,39.2,-75.54,39.46,-75.56,39.61,-75.56,39.63]]],
+  NM:["New Mexico",-106.48,34.45,[[-109.04,37,-103,37,-103,36.5,-103.07,32,-106.62,32,-106.53,31.78,-108.21,31.78,-108.21,31.33,-109.05,31.33,-109.04,37]]],
+  NV:["Nevada",-116.57,39.55,[[-120,41.99,-120,42,-117.03,42,-114.04,41.99,-114.05,37,-114.05,36.19,-114.15,36.02,-114.37,36.14,-114.76,36.09,-114.57,35.2,-114.63,35,-120,39,-120,41.99]]],
+  NY:["New York",-74.83,43.34,[[-79.76,42.27,-78.85,42.78,-79.07,43.08,-79.07,43.26,-78.49,43.37,-77.53,43.23,-76.8,43.31,-76.2,43.57,-76.3,43.84,-76.13,43.9,-76.38,44.03,-76.31,44.2,-75.91,44.37,-75.31,44.84,-74.83,45.02,-73.34,45.01,-73.39,44.64,-73.29,44.44,-73.44,44.04,-73.35,43.77,-73.43,43.59,-73.25,43.55,-73.26,42.75,-73.49,42.05,-73.48,41.21,-73.73,41.1,-73.66,40.98,-73.78,40.79,-73.49,40.95,-72.64,40.98,-72.28,41.16,-72.33,41.11,-72.1,40.99,-71.87,41.05,-73.21,40.63,-73.94,40.54,-74.05,40.69,-73.91,41,-74.7,41.36,-74.98,41.48,-75.08,41.8,-75.36,42,-79.76,42,-79.76,42.27]]],
+  OH:["Ohio",-83.32,40.11,[[-84.81,41.7,-83.45,41.73,-82.93,41.51,-82.84,41.59,-82.48,41.38,-81.74,41.49,-81.29,41.76,-80.52,41.98,-80.52,40.64,-80.67,40.57,-80.6,40.32,-80.88,39.62,-81.21,39.39,-81.47,39.4,-81.68,39.27,-81.81,39.08,-81.78,38.92,-81.89,38.87,-82.03,39.03,-82.32,38.45,-82.6,38.42,-82.85,38.59,-82.89,38.76,-83.16,38.62,-83.52,38.7,-83.66,38.63,-84.21,38.81,-84.44,39.11,-84.82,39.11,-84.81,41.7]]],
+  OK:["Oklahoma",-96.15,35.4,[[-103,37,-102.04,36.99,-94.62,37,-94.62,36.5,-94.43,35.39,-94.49,33.64,-95.23,33.96,-95.29,33.88,-95.6,33.93,-96.15,33.84,-96.36,33.69,-96.59,33.89,-96.77,33.83,-96.92,33.96,-97.12,33.72,-97.21,33.92,-97.44,33.82,-97.66,33.99,-97.97,33.88,-98.11,34.15,-98.49,34.06,-99.19,34.22,-99.38,34.46,-99.4,34.38,-99.71,34.39,-100,34.56,-100,36.5,-103,36.5,-103,37]]],
+  OR:["Oregon",-119.5,43.91,[[-123.55,46.26,-122.9,46.08,-122.76,45.66,-122.27,45.54,-121.81,45.71,-121.34,45.71,-121.18,45.61,-120.63,45.75,-120.21,45.73,-118.99,46,-116.92,46,-116.46,45.6,-117.24,44.4,-117.22,44.29,-116.9,44.15,-117.03,43.81,-117.03,42,-120,42,-120,41.99,-120,42,-124.21,42,-124.41,42.25,-124.39,42.57,-124.55,42.84,-124.15,43.91,-123.96,45.28,-124,46.24,-123.85,46.16,-123.55,46.26]]],
+  PA:["Pennsylvania",-76.44,40.87,[[-80.52,41.98,-79.76,42.27,-79.76,42,-75.36,42,-75.08,41.8,-74.98,41.48,-74.7,41.36,-75.14,40.97,-75.05,40.87,-75.2,40.69,-75.06,40.42,-74.72,40.15,-75.42,39.8,-75.66,39.82,-75.79,39.72,-79.48,39.72,-80.52,39.72,-80.52,40.64,-80.52,41.98]]],
+  RI:["Rhode Island",-71.61,41.79,[[-71.86,41.32,-71.8,42.01,-71.38,42.02,-71.22,41.71,-71.29,41.64,-71.39,41.78,-71.48,41.37,-71.86,41.32]]],
+  SC:["South Carolina",-80.58,33.7,[[-83.11,35,-82.39,35.22,-81.04,35.15,-81.04,35.04,-80.93,35.11,-80.78,34.94,-80.8,34.82,-79.67,34.8,-78.54,33.85,-78.94,33.64,-79.36,33.01,-79.58,33.01,-79.73,32.81,-79.92,32.78,-79.89,32.68,-80,32.61,-80.47,32.5,-80.46,32.33,-80.75,32.31,-80.67,32.22,-80.89,32.03,-81.11,32.11,-81.2,32.47,-81.41,32.62,-81.49,33.01,-82.56,33.94,-82.88,34.48,-83.34,34.68,-83.11,35]]],
+  SD:["South Dakota",-97.96,44.39,[[-104.06,45,-104.04,45.95,-96.56,45.94,-96.86,45.61,-96.45,45.3,-96.45,43.5,-96.6,43.5,-96.56,43.22,-96.44,43.12,-96.63,42.77,-96.45,42.49,-97.22,42.85,-97.85,42.87,-98.02,42.76,-98.5,43,-104.05,43,-104.06,45]]],
+  TN:["Tennessee",-87.5,35.83,[[-89.73,36,-89.6,36.12,-89.69,36.25,-89.53,36.25,-89.61,36.31,-89.51,36.37,-89.54,36.5,-89.49,36.5,-89.42,36.5,-88.05,36.5,-88.07,36.68,-83.68,36.6,-81.68,36.59,-81.71,36.34,-81.91,36.3,-82.03,36.13,-82.35,36.12,-82.56,35.95,-82.63,36.07,-82.99,35.77,-83.88,35.52,-84.02,35.3,-84.29,35.22,-84.32,34.99,-85.61,34.98,-88.2,35,-90.31,35,-90.06,35.14,-90.17,35.3,-90.08,35.38,-90.17,35.42,-90.09,35.48,-90.06,35.4,-90.03,35.55,-89.92,35.51,-89.85,35.64,-89.96,35.72,-89.66,35.89,-89.73,36]]],
+  TX:["Texas",-98.43,30.91,[[-103,36.5,-100,36.5,-100,34.56,-99.71,34.39,-99.4,34.38,-99.38,34.46,-99.19,34.22,-98.49,34.06,-98.11,34.15,-97.97,33.88,-97.66,33.99,-97.44,33.82,-97.21,33.92,-97.12,33.72,-96.92,33.96,-96.77,33.83,-96.59,33.89,-96.36,33.69,-96.15,33.84,-95.6,33.93,-95.29,33.88,-95.23,33.96,-94.49,33.64,-94.05,33.55,-94.05,33.55,-94.04,33.02,-94.04,31.99,-93.82,31.77,-93.84,31.6,-93.52,31.02,-93.74,30.54,-93.7,30.07,-93.93,29.8,-93.84,29.69,-94.73,29.37,-94.49,29.52,-94.77,29.55,-94.76,29.78,-94.94,29.7,-95.02,29.56,-94.89,29.31,-95.17,29.11,-94.73,29.33,-95.38,28.87,-96.34,28.42,-97,27.91,-97.37,27.15,-97.16,26.08,-97.28,26.54,-97.37,26.56,-97.36,27.35,-97.08,27.91,-96.42,28.4,-96.68,28.31,-96.77,28.41,-96.93,28.12,-97.15,28.13,-97.21,28.08,-97.02,28.04,-97.19,27.83,-97.49,27.88,-97.25,27.7,-97.41,27.32,-97.64,27.27,-97.42,27.26,-97.44,26.61,-97.15,25.95,-97.44,25.85,-97.65,26.02,-98.2,26.06,-99.08,26.4,-99.45,27.02,-99.51,27.56,-99.88,27.8,-99.93,27.98,-100.29,28.28,-100.8,29.25,-101.26,29.52,-101.41,29.76,-102.3,29.88,-102.39,29.77,-102.67,29.74,-102.89,29.21,-103.12,28.99,-103.28,28.98,-104.51,29.64,-104.92,30.6,-105.4,30.86,-106.53,31.78,-106.62,32,-103.07,32,-103,36.5]]],
+  UT:["Utah",-111.92,39.13,[[-114.04,41.99,-111.05,42,-111.05,41,-109.05,41,-109.04,37,-114.05,37,-114.04,41.99]]],
+  VA:["Virginia",-78.4,37.72,[[-75.67,37.95,-75.24,38.03,-75.52,37.8,-75.94,37.09,-76.02,37.32,-75.67,37.95],[-81.97,37.54,-81.93,37.36,-81.68,37.2,-81.36,37.34,-81.22,37.24,-80.92,37.31,-80.86,37.43,-80.47,37.42,-80.3,37.51,-80.26,37.76,-79.79,38.27,-79.65,38.59,-79.31,38.41,-79,38.85,-78.87,38.76,-78.4,39.17,-78.35,39.47,-77.83,39.13,-77.72,39.32,-77.56,39.3,-77.46,39.23,-77.52,39.12,-77.12,38.93,-77.04,38.79,-77.13,38.64,-77.25,38.64,-77.31,38.49,-77.27,38.33,-77.04,38.4,-76.96,38.21,-76.62,38.15,-76.24,37.89,-76.36,37.61,-76.91,37.97,-76.54,37.62,-76.3,37.56,-76.27,37.31,-76.41,37.4,-76.35,37.27,-76.49,37.25,-76.29,37.13,-76.3,37,-76.43,36.97,-76.65,37.22,-76.95,37.23,-76.69,37.2,-76.48,36.9,-75.99,36.92,-75.87,36.55,-81.68,36.59,-83.68,36.6,-83.14,36.74,-82.72,37.12,-81.97,37.54]]],
+  VT:["Vermont",-72.66,44.33,[[-73.34,45.01,-71.5,45.01,-71.63,44.75,-71.58,44.5,-72.03,44.32,-72.03,44.09,-72.38,43.57,-72.44,43.01,-72.56,42.85,-72.46,42.73,-73.26,42.75,-73.25,43.55,-73.43,43.59,-73.35,43.77,-73.44,44.04,-73.29,44.44,-73.39,44.64,-73.34,45.01]]],
+  WA:["Washington",-120.43,47.36,[[-117.03,49,-117.06,46.37,-116.92,46,-118.99,46,-120.21,45.73,-120.63,45.75,-121.18,45.61,-121.34,45.71,-121.81,45.71,-122.27,45.54,-122.76,45.66,-122.9,46.08,-123.55,46.26,-124.08,46.27,-124.07,46.63,-123.95,46.38,-123.96,46.64,-123.83,46.72,-124.09,46.75,-124.14,46.91,-123.86,46.95,-124.12,47.04,-124.18,46.93,-124.42,47.74,-124.67,47.98,-124.72,48.39,-123.98,48.16,-123.13,48.18,-122.87,48,-122.88,48.11,-122.76,48.14,-122.61,47.89,-122.78,47.7,-122.81,47.81,-123.15,47.36,-122.91,47.39,-123.12,47.39,-122.57,47.86,-122.61,47.94,-122.53,47.91,-122.55,47.29,-122.6,47.22,-122.73,47.33,-122.64,47.21,-122.71,47.13,-122.84,47.26,-122.8,47.34,-122.86,47.27,-122.86,47.17,-122.68,47.1,-122.53,47.32,-122.33,47.35,-122.43,47.66,-122.23,47.97,-122.4,48.23,-122.48,48.19,-122.38,48.06,-122.51,48.13,-122.53,48.25,-122.41,48.33,-122.71,48.46,-122.47,48.47,-122.43,48.6,-122.54,48.78,-122.67,48.73,-122.76,49,-117.03,49]]],
+  WI:["Wisconsin",-89.64,44.17,[[-92.01,46.71,-90.87,46.96,-90.75,46.89,-90.95,46.6,-90.74,46.69,-90.42,46.57,-90.35,46.54,-90.35,46.54,-90.12,46.34,-88.1,45.92,-88.14,45.82,-87.78,45.67,-87.85,45.34,-87.85,45.34,-87.66,45.37,-87.74,45.2,-87.59,45.1,-87.98,44.72,-88.04,44.57,-87.93,44.54,-87.61,44.84,-87.38,44.87,-87.24,45.17,-86.98,45.29,-87.47,44.55,-87.52,44.18,-87.74,43.88,-87.71,43.68,-87.91,43.24,-87.77,42.78,-87.8,42.49,-90.64,42.51,-90.71,42.63,-91.06,42.74,-91.18,43.13,-91.06,43.25,-91.22,43.5,-91.25,43.77,-91.44,44,-92.81,44.77,-92.76,45.29,-92.65,45.44,-92.89,45.58,-92.86,45.72,-92.29,46.07,-92.29,46.66,-92.01,46.71]]],
+  WV:["West Virginia",-80.92,38.49,[[-82.6,38.42,-82.32,38.45,-82.03,39.03,-81.89,38.87,-81.78,38.92,-81.81,39.08,-81.68,39.27,-81.47,39.4,-81.21,39.39,-80.88,39.62,-80.6,40.32,-80.67,40.57,-80.52,40.64,-80.52,39.72,-79.48,39.72,-79.49,39.21,-78.78,39.62,-78.47,39.52,-78.18,39.7,-77.83,39.6,-77.72,39.32,-77.83,39.13,-78.35,39.47,-78.4,39.17,-78.87,38.76,-79,38.85,-79.31,38.41,-79.65,38.59,-79.79,38.27,-80.26,37.76,-80.3,37.51,-80.47,37.42,-80.86,37.43,-80.92,37.31,-81.22,37.24,-81.36,37.34,-81.68,37.2,-81.93,37.36,-81.97,37.54,-82.29,37.67,-82.5,37.93,-82.64,38.14,-82.6,38.42]]],
+  WY:["Wyoming",-108.95,43,[[-104.06,45,-104.05,43,-104.05,41,-109.05,41,-111.05,41,-111.05,42,-111.05,44.47,-111.05,45,-104.06,45]]]
+};
+const rad = d => d*Math.PI/180;
+const P = (()=>{ const p1=rad(29.5),p2=rad(45.5),p0=rad(37.5),l0=rad(-96);
+  const n=(Math.sin(p1)+Math.sin(p2))/2, C=Math.cos(p1)**2+2*n*Math.sin(p1), r0=Math.sqrt(C-2*n*Math.sin(p0))/n;
+  const raw=(lon,lat)=>{const r=Math.sqrt(C-2*n*Math.sin(rad(lat)))/n,t=n*(rad(lon)-l0);return[r*Math.sin(t),-(r0-r*Math.cos(t))]};
+  const pts=OUTLINE.map(o=>raw(o[0],o[1])), xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]);
+  const minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys);
+  const s=Math.min(940/(maxx-minx),560/(maxy-miny)), ox=(1000-(maxx-minx)*s)/2-minx*s, oy=(620-(maxy-miny)*s)/2-miny*s+14;
+  return (lon,lat)=>{const q=raw(lon,lat);return[q[0]*s+ox,q[1]*s+oy]};
+})();
+
+const SVGNS="http://www.w3.org/2000/svg";
+const el=(tag,attrs={},parent)=>{const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);parent&&parent.appendChild(e);return e};
+
+function cluster(list){ // greedy clustering in projected space
+  const R=26, groups=[];
+  list.forEach(c=>{
+    c.xy=P(c.lon,c.lat);
+    const g=groups.find(g=>Math.hypot(g.x-c.xy[0],g.y-c.xy[1])<R);
+    if(g){g.items.push(c);g.x=g.items.reduce((a,i)=>a+i.xy[0],0)/g.items.length;g.y=g.items.reduce((a,i)=>a+i.xy[1],0)/g.items.length}
+    else groups.push({x:c.xy[0],y:c.xy[1],items:[c]});
+  });
+  return groups;
+}
+
+// State borders: an edge shared by two states' rings is an interior border and is stroked once; an edge used by only one ring is coast/national
+// border, already drawn (crudely) by OUTLINE's .land stroke, so it is skipped to avoid a doubled coastline. (Shared edges have identical
+// coordinates because the data was simplified before splitting into states.)
+let STATE_PATH = null;
+function stateBorderPath(){
+  if(STATE_PATH) return STATE_PATH;
+  const cnt=new Map(), segs=[];
+  Object.values(STATES).forEach(st=>st[3].forEach(r=>{ const n=r.length/2;
+    for(let i=0;i<n;i++){ const a=i*2, b=((i+1)%n)*2, k1=r[a]+','+r[a+1], k2=r[b]+','+r[b+1], key=k1<k2?k1+'|'+k2:k2+'|'+k1;
+      cnt.set(key,(cnt.get(key)||0)+1); segs.push([key,r[a],r[a+1],r[b],r[b+1]]); } }));
+  const seen=new Set(); let d='';
+  segs.forEach(([key,x1,y1,x2,y2])=>{ if(cnt.get(key)<2||seen.has(key)) return; seen.add(key);
+    const p=P(x1,y1), q=P(x2,y2); d+=`M${p[0].toFixed(1)},${p[1].toFixed(1)}L${q[0].toFixed(1)},${q[1].toFixed(1)}`; });
+  return STATE_PATH=d;
+}
+// Labels only for states that have a connected campus THIS session (set derived from D.campuses[].st, re-derived on every render).
+// Labels are always the two-letter abbreviation.
+function drawStates(svg){
+  el('path',{d:stateBorderPath(),class:'sb'},svg);
+  const have=new Set(D.campuses.map(c=>c.st));
+  have.forEach(ab=>{ const st=STATES[ab]; if(!st) return;
+    const [x,y]=P(st[1],st[2]);
+    const t=el('text',{x,y:y+4,class:'sl'},svg); t.textContent = ab; });
+}
+
+function renderMap(){
+  const svg=document.getElementById('map'); if(!svg) return; svg.innerHTML='';
+  // faint graticule
+  for(let lon=-120;lon<=-70;lon+=10){const d=[];for(let lat=24;lat<=50;lat+=2){const p=P(lon,lat);d.push(p.join(','))}el('polyline',{points:d.join(' '),class:'grat'},svg)}
+  for(let lat=25;lat<=50;lat+=5){const d=[];for(let lon=-126;lon<=-66;lon+=2){const p=P(lon,lat);d.push(p.join(','))}el('polyline',{points:d.join(' '),class:'grat'},svg)}
+  el('polygon',{points:OUTLINE.map(o=>P(o[0],o[1]).join(',')).join(' '),class:'land',"stroke-linejoin":"round"},svg);
+  drawStates(svg); // state borders + labels sit above the land fill, below dots/clusters/legend
+  // connected campuses cluster as before; disconnected ones are NEVER clustered, so each one is visible at its own location
+  cluster(D.campuses.filter(c=>!c.stale)).forEach(g=>{
+    const n=g.items.length, m=el('g',{class:'mk',transform:`translate(${g.x},${g.y})`},svg);
+    if(n===1){el('circle',{r:15,class:'halo'},m);el('circle',{r:7.5,class:'dot-live'},m)}
+    else {
+      const r=13+Math.min(n,8)*1.2;
+      el('circle',{r:r+8,class:'halo'},m); el('circle',{r,class:'dot-live'},m);
+      const b=el('text',{y:6.5,'text-anchor':'middle','font-size':n>9?18:20,class:'badge'},m);b.textContent=n;
+    }
+  });
+  // disconnected: drawn last (on top) — red halo, pulsing ring, solid red dot
+  D.campuses.filter(c=>c.stale).forEach(c=>{
+    const [x,y]=P(c.lon,c.lat), m=el('g',{class:'mk dis',transform:`translate(${x},${y})`},svg);
+    el('circle',{r:15,class:'dis-halo'},m); el('circle',{r:7.5,class:'dis-ring'},m); el('circle',{r:7.5,class:'dis-dot'},m);
+  });
+}
+
+function renderCaption(){
+  if(!document.getElementById('map')) return;
+  // The tile's old caption line is gone; this now fills the legend (bottom-left) and the strip count. Passive display only.
+  const n=D.campuses.length, off=D.campuses.filter(c=>c.stale).length, live=n-off;
+  renderList();
+  document.getElementById('map-legend').innerHTML=`<span><i style="background:var(--ok)"></i>Online (${live})</span><span><i style="background:var(--bad)"></i>Disconnected (${off})</span>`;
+  // tile state: pulsing red border while any campus is disconnected
+  document.querySelector('#t-map .ttl').innerHTML='Campuses'; // no title count: the legend already shows Disconnected (n)
+  document.getElementById('t-map').classList.toggle('alert',off>0);
+  renderRefresh();
+}
+// Refresh time: plain HH:MM:SS (24 h) + relative phrase. NOT ticking: re-rendered once per minute (60 s interval below).
+let refreshShown = null; // last live-rendered {t, ago}; frozen copy is shown during an outage
+function renderRefresh(){
+  const el=document.getElementById('map-refresh'); if(!el) return;
+  if(!D.refreshedAt) D.refreshedAt=Date.now()-D.refreshed*1000;
+  if(!OUTAGE||!refreshShown){
+    const t=new Date(D.refreshedAt).toLocaleTimeString('en-GB',{hour12:false}), sec=Math.max(1,Math.round((Date.now()-D.refreshedAt)/1000));
+    refreshShown={t, ago:sec<60?sec+(sec===1?' second':' seconds'):Math.floor(sec/60)+(sec<120?' minute':' minutes')};
+  }
+  el.innerHTML=`${OUTAGE?'Last known · updated ':''}<b>${refreshShown.t}</b> (${refreshShown.ago} ago)`;
+}
+
+let listShownAt = Date.now(); // start of the current 9 s Campus list rotation window (drives the pager fill)
+let listCur = null; // name of the disconnected campus on the Campus list card (kept across re-renders while it stays down)
+const disList = () => D.campuses.filter(c => c.stale).sort((a, b) => a.last - b.last); // longest outage first
+function renderList(){
+  const inner=document.getElementById('list-inner'), box=document.getElementById('list-scroll'), card=document.getElementById('list-card'), meta=document.getElementById('list-n'); if(!inner) return;
+  const n=D.campuses.length, dis=disList();
+  const mode=dis.length?'dis':'all'; if(inner.dataset.mode!==mode){ inner.dataset.mode=mode; inner._y=0; } // new view starts at the top
+  document.getElementById('t-list').classList.toggle('alert',dis.length>0);
+  if(dis.length){
+    // one campus fills the tile; the list scroller is parked (no rows = scrollList skips it)
+    box.hidden=true; inner._rows=undefined; inner.innerHTML='';
+    let i=dis.findIndex(c=>c.name===listCur); if(i<0) i=0; const c=dis[i]; listCur=c.name;
+    const lost=new Date(c.last).toLocaleTimeString('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'2-digit'}); // 12-hour CT, like the Time zones tile
+    const mins=Math.max(1,Math.round((Date.now()-c.last)/60000)); // outage length: hero numeral, unit underneath
+    const clock=mins<60?`<b>${mins}<u>min</u></b>`:`<b class="hm">${Math.floor(mins/60)}:${String(mins%60).padStart(2,'0')}<u>h</u></b>`; // unit sits on the numeral's baseline
+    const [why,detail]=c.cause||CAUSES[0];
+    card.hidden=false;
+    const el=Math.min(9000,Math.max(0,Date.now()-listShownAt)); // time already spent in the current 9 s rotation window
+    card.innerHTML=`<div class="dc-id"><b class="nm">${c.name}</b><span class="tw">${c.town}</span></div>`+
+      `<div class="dc-main"><div class="dc-clock">${clock}<small>since ${lost} CT</small></div>`+
+      `<div class="dc-why"><span class="cz">${why}</span><span class="dt">${detail}</span></div></div>`+
+      (dis.length>1?`<div class="dc-pg">${dis.map((_,k)=>`<i${k===i?` class="on" style="--pg-d:-${el}ms"`:''}></i>`).join('')}</div>`:''); // no pager when only one campus is down (nothing rotates)
+    meta.className='bad'; meta.textContent=`${i+1}/${dis.length} disconnected`;
+    return;
+  }
+  listCur=null; card.hidden=true; card.innerHTML=''; box.hidden=false;
+  // all connected: grouped by time zone east to west (same zones as the Time zones tile), campuses A-Z inside each; name + town per row
+  const ZONE={'America/New_York':'Eastern','America/Detroit':'Eastern','America/Chicago':'Central','America/Denver':'Mountain','America/Boise':'Mountain','America/Phoenix':'Mountain','America/Los_Angeles':'Pacific'};
+  const g={}; D.campuses.forEach(c=>{ const z=ZONE[c.tz]||'Other'; (g[z]=g[z]||[]).push(c); });
+  const rows=['Eastern','Central','Mountain','Pacific','Other'].filter(z=>g[z]).map(z=>`<div class="cgh" data-z="${z}">${z}<span>${g[z].length}</span></div>`+g[z].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<div class="crow"><span class="nm">${c.name}</span><small>${c.town}</small></div>`).join('')).join('');
+  fillList(inner,box,rows);
+  meta.className='ok'; meta.textContent=`All ${n} connected`;
+}
+// Shared auto-scroll for lists that can outgrow their tile (Campus list in default, Caution notes in Active).
+// The rows are shown once and stay still if they fit; only when they're taller are they shown as two identical copies
+// (each wrapped in .copy so first/last-row trims match) and the slow seamless upward scroll runs. Never moves when it fits.
+const SCROLLERS = [['list-inner', 'list-scroll'], ['notes-inner', 'notes-body']]; // [inner, box] ids
+function fillList(inner,box,rows){
+  inner._rows=rows; inner.innerHTML=rows; const scroll=inner.scrollHeight>box.clientHeight;
+  if(scroll) inner.innerHTML=`<div class="copy">${rows}</div><div class="copy">${rows}</div>`;
+  inner.dataset.scroll=scroll?'1':''; box.classList.toggle('still',!scroll);
+  if(!scroll||inner._y===undefined){ inner._y=0; inner.style.transform='none'; }
+}
+// Campus list (all connected): keep the current time zone's label pinned at the top while the rows scroll under it;
+// the next zone's in-flow label pushes the pin up, and once it reaches the top the pin takes its text (seamless: same .cgh look).
+function pinList(){
+  const pin=document.getElementById('list-pin'), inner=document.getElementById('list-inner'), box=document.getElementById('list-scroll'); if(!pin||!inner) return;
+  const on=!box.hidden&&inner.dataset.scroll==='1'; if(pin.hidden===on) pin.hidden=!on; if(!on) return;
+  const y=inner._y||0, hs=inner.querySelectorAll('.cgh'); if(!hs.length) return;
+  let k=0; for(let j=0;j<hs.length;j++){ if(hs[j].offsetTop<=y+.5) k=j; else break; }
+  const cur=hs[k], next=hs[k+1];
+  if(pin._z!==cur.dataset.z+cur.textContent){ pin._z=cur.dataset.z+cur.textContent; pin.innerHTML=cur.innerHTML; }
+  const ph=pin.offsetHeight, d=next?next.offsetTop-y:Infinity;
+  pin.style.transform=d<ph?`translateY(${d-ph}px)`:'none';
+}
+function scrollList(){
+  SCROLLERS.forEach(([i,b])=>{
+    const inner=document.getElementById(i), box=document.getElementById(b); if(!inner||!box||inner._rows===undefined) return;
+    const dup=inner.dataset.scroll==='1', h=dup?inner.scrollHeight/2:inner.scrollHeight;
+    if((h>box.clientHeight)!==dup){ fillList(inner,box,inner._rows); return; } // fit changed (fonts loaded, resize): re-decide
+    if(dup){ inner._y=(inner._y+.35)%h; inner.style.transform=`translateY(${-inner._y}px)`; }
+  });
+  pinList();
+  requestAnimationFrame(scrollList);
+}
+
+function renderReady(){ // Feed & system health (default state only, fleet-wide)
+  const h=D.health, camOk=h.cams[0]===h.cams[1]; // Active: this incident's campus; default: fleet-wide
+  const cell=(v,cls,l)=>`<div class="hc"><b class="${cls}">${v}</b><small>${l}</small></div>`;
+  const beaconV=v=>{ const [st,sec]=v.split(' · '); return sec?`${st}<span class="sec"> · ${sec}</span>`:st; }; // state word stays bold; the age reads as secondary
+  const rb=document.getElementById('ready-bot'); if(!rb) return;
+  rb.innerHTML=`<h2>Feed &amp; system health</h2><div class="health">`+
+    cell(`${h.cams[0]} / ${h.cams[1]}`, camOk?'ok':'warn', 'Cameras streaming')+
+    cell(`${h.drones[0]} / ${h.drones[1]}`, h.drones[0]===h.drones[1]?'ok':'bad', 'Drone links up')+
+    cell(beaconV(h.beacon[0]), h.beacon[1], 'Beacon / location data')+
+    cell(h.flight[0], h.flight[1], 'Flight network')+`</div>`;
+}
+
+// OPEN DESIGN QUESTION: with the header showing which TOC is on shift, these peer/comms tiles could reframe as "this TOC vs. the peer TOC"; for now they list TOC 1 / TOC 2 neutrally.
+const peerRows=()=>D.peer.map((p,i)=>OUTAGE&&i===3?['Internet sources','Unreachable','bad']:p); // outage override at render time; D.peer untouched
+function renderPeer(){
+  const rows=peerRows();
+  document.getElementById('peer').innerHTML=rows.map(p=>`<div class="prow"><span>${p[0]}</span><span class="chip ${p[2]}">${p[1]}</span></div>`).join('');
+  const bad=rows.filter(p=>p[2]!=='ok').length; // title roll-up: the answer before the rows
+  document.querySelector('#t-peer>h2').innerHTML=`TOC peer status <span class="${bad?'bad':'ok'}">${bad?bad+(bad>1?' need':' needs')+' attention':'All '+rows.length+' healthy'}</span>`;
+  document.getElementById('t-peer').classList.toggle('alert',bad>0); // same red edge as Campuses map / Campus list
+}
+
+
+// Planned Sites lists every site (no rotation).
+// Bell times are ALWAYS shown in Central: TOC staff and HQ are in Austin (CT), so standardizing avoids the room converting per school as sites rotate.
+// Mock bell strings are school-local; the zone is modeled (s.tz), so convert school-local -> America/Chicago.
+function tzOffMin(tz){ const d=new Date(), P=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:tz,hourCycle:'h23',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric'}).formatToParts(d).map(x=>[x.type,+x.value]));
+  return (Date.UTC(P.year,P.month-1,P.day,P.hour,P.minute)-Math.floor(d/60000)*60000)/60000; }
+function bellCT(s){
+  const m=/^(\d+):(\d+) (AM|PM)$/.exec(s.bell); if(!m) return s.bell;
+  let mins=((+m[1]%12)+(m[3]==='PM'?12:0))*60+ +m[2]; mins=(mins+tzOffMin('America/Chicago')-tzOffMin(s.tz)+1440)%1440;
+  const h=Math.floor(mins/60); return `${h%12||12}:${String(mins%60).padStart(2,'0')} ${h<12?'AM':'PM'}`;
+}
+function renderSites(){
+  document.getElementById('site-a').innerHTML=`<h2>Planned sites</h2>`+D.sites.map(s=>`<div class="srow"><div class="bt">${bellCT(s)}</div><div class="sn"><b>${s.name}</b><small>${s.loc}</small></div><span class="chip ${s.ok?'ok':'warn'}">${s.cal.replace(/^Calendar /,'').replace(/^./,c=>c.toUpperCase())}</span></div>`).join('');
+}
+
+// Team schedule (default): first 3 events that have not ended = the one in progress + the next upcoming ones. Times in CT like Planned sites.
+function renderSchedule(){
+  const el = document.getElementById('sched-a'); if(!el) return;
+  const now = Date.now(), list = D.schedule.filter(e => e.end > now).slice(0, 3);
+  const ct = ts => new Date(ts).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' });
+  const rel = ms => { const m = Math.max(1, Math.round(ms / 60000)); return m < 60 ? 'in ' + m + ' min' : 'in ' + Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm'; };
+  const html = `<h2>Team schedule</h2>` + (list.length ? list.map(e => { const on = e.start <= now;
+    return `<div class="srow"><div class="bt">${ct(e.start)}</div><div class="sn"><b>${e.title}</b><small>${e.kind} · ${e.where}</small></div><span class="chip ${on ? 'ok' : 'off'}">${on ? 'Now' : rel(e.start - now)}</span></div>`; }).join('') : `<div class="srow"><div class="sn"><small>No more events today</small></div></div>`);
+  if (el.dataset.k !== html) { el.dataset.k = html; el.innerHTML = html; } // dataset key: a fresh shell (mode switch) re-renders
+}
+
+function renderComms(){
+  if(!document.getElementById('comms')) return;
+  document.getElementById('comms').innerHTML=D.comms.map(c=>`<div class="ci"><div class="hd"><b>${c.toc}</b><span class="chip ${c.ch?'ok':'off'}">${c.ch?'Configured':'Not set up'}</span></div>
+    ${c.ch?`<div class="ln">${c.ch}</div><div class="ln m">${c.checked}</div>`:`<div class="ln e">Add phone / radio channel in Settings</div><div class="ln m e">No manual check logged</div>`}</div>`).join('');
+}
+
+let OUTAGE = false; // demo switch: plain instant on/off, independent of MODE / stage / alarm
+// Combined time-zone tile (default state, row 1). 12-hour with AM/PM; CT larger, PT/MT/ET equal. Ticks with the 1 s clock interval.
+const TZ = {PT:'America/Los_Angeles',MT:'America/Denver',CT:'America/Chicago',ET:'America/New_York'};
+const OFF={PT:'−2h',MT:'−1h',ET:'+1h'};
+function renderTz(){
+  const el=document.getElementById('t-tz'); if(!el) return;
+  const d=new Date(), t=c=>{ const [hms,ap]=d.toLocaleTimeString('en-US',{timeZone:TZ[c],hour:'numeric',minute:'2-digit',second:'2-digit'}).split(/\s/); return {hm:hms.slice(0,-3), s:hms.slice(-3), ap}; }; // "2:05:09 PM" -> 2:05 | :09 | PM
+  const ct=t('CT'), other=c=>{ const x=t(c); return `<div><span>${c}</span>${x.hm}${x.s}<u>${x.ap}</u><small>${OFF[c]}</small></div>`; };
+  el.innerHTML=`<h2>Time zones <span>Austin HQ is on CT</span></h2><div class="tz-ct"><b><em>CT</em>${ct.hm}<i>${ct.s}</i><u>${ct.ap}</u></b></div><div class="tz-o">${['PT','MT','ET'].map(other).join('')}</div>`;
+}
+
+// Two teams, 3 h on / 3 h off, 24 h a day, anchored at 6:00 AM: Team 1 6-9, Team 2 9-12, T1 12-3, T2 3-6, T1 6-9 pm, T2 9-12 am, T1 12-3 am, T2 3-6 am.
+const hr12 = h => ((h % 24) % 12 || 12) + (h % 24 < 12 ? ' AM' : ' PM');
+// Shifts run on Central Time (Austin HQ), like Team schedule and Planned sites: minutes since CT midnight.
+const ctMin = (d = new Date()) => { const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hourCycle: 'h23', hour: 'numeric', minute: 'numeric' }).formatToParts(d).map(x => [x.type, +x.value])); return p.hour * 60 + p.minute; };
+function shiftNow(d = new Date()) {
+  const slot = Math.floor(((ctMin(d) - 360 + 1440) % 1440) / 180); // 0..7, CT
+  const h0 = (6 + slot * 3) % 24;
+  const team = s => (s % 2 === 0 ? '1' : '2');
+  return { slot, on: team(slot), next: team(slot + 1), onTime: hr12(h0) + '–' + hr12(h0 + 3), nextTime: hr12(h0 + 3) + '–' + hr12(h0 + 6) };
+}
+let rotaSlot = -1; // key of the Team rotation markup on screen (slot + state); rebuilt only when it changes
+// Shift handover model. MOCK: the incoming team "signs in" LOGIN_DELAY after each scheduled boundary; until then the outgoing team stays on.
+const SHIFT_MS = 180 * 60000, ENDING_MS = 15 * 60000, LOGIN_DELAY = 4 * 60000;
+let ALT_LAYOUT = false; // DEMO ONLY: Active alternative layout (footer switch)
+let ROTA_OFF = 0, SHIFT_SEL = 'live'; // DEMO ONLY: footer Shift control shifts Team rotation's clock (and the header TOC tag); 0 = live
+const rotaNow = () => Date.now() + ROTA_OFF;
+const slotElapsed = d => (((ctMin(d) - 360 + 1440) % 1440) % 180) * 60000 + d.getSeconds() * 1000 + d.getMilliseconds(); // ms into the scheduled 3 h slot
+function rotaState(t = rotaNow()) {
+  const d = new Date(t), s = shiftNow(d), el = slotElapsed(d), other = n => (n === '1' ? '2' : '1');
+  if (el < LOGIN_DELAY) return { state: 'waiting', key: s.slot + 'w', on: other(s.on), next: s.on, overMs: el, nextTime: s.onTime }; // shift over, next team not signed in yet
+  const left = SHIFT_MS - el, ending = left <= ENDING_MS;
+  return { state: ending ? 'ending' : 'on', key: s.slot + (ending ? 'e' : 'o'), on: s.on, next: s.next, until: s.onTime.split('–')[1], leftMs: left, elapsedMs: el, nextTime: s.nextTime };
+}
+// Header identity tag: the TOC of the team on shift now (TOC1 = Team 1, TOC2 = Team 2), from the same rotaState() as Team rotation,
+// so it switches when the incoming team signs in (not at the scheduled time). Runs every second, both states.
+function renderBrand() {
+  const el = document.getElementById('toc-badge'); if (!el) return;
+  const t = `TOC${rotaState().on}`;
+  if (el.textContent !== t) el.textContent = t;
+}
+// Header weather strip. Default: every town with a campus in the fleet (A-Z), crawling. Active: the incident town's weather only (no name), static.
+// Weather is MOCK data in D.wx. The DOM is only touched when mode or content changes, so the crawl never restarts on timers.
+function renderWx() {
+  const el = document.getElementById('wx-strip'); if (!el) return;
+  const act = MODE === 'active' && D.incident;
+  const towns = act ? [D.incident.loc] : [...new Set(D.campuses.map(c => c.town))].sort();
+  const item = town => { const w = D.wx[town]; return w ? `<span class="wx-i">${act ? '' : `<b>${town}</b>`}${IC[w.k]}<em>${w.t}°</em></span>` : ''; }; // Active: icon + temp only (the address next to the badge names the town)
+  const html = towns.map(item).join(''), k = (act ? 'a' : 'd') + html;
+  if (el.dataset.k === k) return; el.dataset.k = k;
+  el.classList.toggle('static', !!act);
+  const tr = el.querySelector('.wx-track'); tr.innerHTML = act ? html : html + html;
+  // constant ~6rem/s whatever the number of towns: duration = one copy's width / speed (again once web fonts settle the width)
+  const speed = () => { const rem = parseFloat(getComputedStyle(document.documentElement).fontSize); tr.style.animationDuration = (tr.scrollWidth / 2 / (6 * rem)).toFixed(1) + 's'; };
+  if (!act) { speed(); document.fonts.ready.then(() => { if (!el.classList.contains('static')) speed(); }); }
+}
+function renderRota(){
+  const el = document.getElementById('rota-st'); if(!el) return;
+  const r = rotaState(), meta = document.getElementById('rota-meta');
+  const mmss = ms => { const t = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+  const live = r.state === 'ending' ? 'ends in ' + mmss(r.leftMs)
+    : r.state === 'waiting' ? (r.overMs < 60000 ? 'under 1 min over' : Math.floor(r.overMs / 60000) + ' min over')
+    : 'until ' + r.until;
+  if (r.key !== rotaSlot || !el.firstChild) { // state or shift changed: rebuild (the bar's fill is anchored to the elapsed time, so this never jumps it)
+    rotaSlot = r.key;
+    const bar = r.state === 'waiting' ? '<div class="rs-bar full"></div>' : `<div class="rs-bar${r.state === 'ending' ? ' end' : ''}" style="--pg-t:${SHIFT_MS}ms;--pg-d:-${Math.round(r.elapsedMs)}ms"></div>`;
+    const nx = r.state === 'waiting' ? `<b>Team ${r.next}</b> not signed in yet · ${r.nextTime}` : `Next · <b>Team ${r.next}</b> · ${r.nextTime}`;
+    el.innerHTML = `<div class="rs-on"><small>${r.state === 'waiting' ? 'Still on shift' : 'On shift now'}</small><b>Team ${r.on}<span id="rota-live">${live}</span></b></div><div class="rs-ft">${bar}<div class="rs-nx">${nx}</div></div>`;
+    if (meta) meta.innerHTML = r.state === 'ending' ? '<i class="chip sm warn">Ending soon</i>' : r.state === 'waiting' ? `<i class="chip sm warn">Waiting for Team ${r.next}</i>` : '';
+  } else { const lv = document.getElementById('rota-live'); if (lv && lv.textContent !== live) lv.textContent = live; } // countdown / overdue ticks in place
+}
+
+function renderClock(){
+  if(!document.getElementById('s-time')) return;
+  const d=new Date();
+  document.getElementById('s-time').textContent=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit'});
+  document.getElementById('s-date').textContent=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+}
+
+// DEMO ONLY: nudge the mock data every ~15 s so the default tiles (map, Campus list, health, peer, comms) change live.
+function demoDrift(){
+  const h = D.health, pick = a => a[Math.floor(Math.random() * a.length)], acts = [
+    () => { h.cams[0] = h.cams[0] < h.cams[1] ? h.cams[0] + 1 : h.cams[0] - 1; renderReady(); },
+    () => { const live = D.campuses.filter(c => !c.stale), c = pick(live); if (!c) return; c.stale = true; c.last = Date.now() - (3 + Math.random() * 3) * 60000; c.cause = pick(CAUSES); renderMap(); renderCaption(); },
+    () => { const st = D.campuses.filter(c => c.stale), c = pick(st); if (!c) return; c.stale = false; c.last = Date.now(); renderMap(); renderCaption(); },
+    () => { const up = D.peer[2][1] === 'Connected'; D.peer[2] = up ? ['Peer link', 'Disconnected', 'bad'] : ['Peer link', 'Connected', 'ok']; renderPeer(); },
+    () => { const d = new Date(); D.comms[0].checked = 'Manual check logged ' + d.toLocaleTimeString('en-GB', { timeZone: 'America/Chicago', hour12: false }).slice(0, 5); renderComms(); },
+    () => { const ls = D.droneSites.flatMap(d => d.lanes).filter(Boolean), x = pick(ls); const v = x.fw.split('.').map(Number); v[2]++; x.fw = v.join('.'); }
+  ];
+  pick(acts)();
+}
+
+/* =====================================================================
+   STATE SWITCHING — Default vs Active (incident). Same grid areas, same
+   D-object + render*() pattern. The shell of each state is swapped as markup,
+   then that state's render functions fill it. MOCK DATA ONLY throughout.
+   ===================================================================== */
+const QS = new URLSearchParams(location.search); // review aid: ?mode=active&stage=Verification&multi=1&notes=0 (notes=0: empty Caution notes)
+let MODE = QS.get('mode') === 'active' ? 'active' : 'default';
+const grid = document.getElementById('grid'), incHd = document.getElementById('inc-hd');
+const SHELL_DEFAULT = grid.innerHTML;
+
+const SHELL_ACTIVE = `
+  <!-- top-left 2x2: four drone feeds, the same lanes listed in Drone readiness -->
+  <section id="t-feeds"></section>
+  <section class="tile" id="t-list"></section>
+  <section class="tile" id="t-suspect"></section>
+  <section class="tile" id="t-news"></section>
+  <section class="tile" id="t-stats"></section>
+  <section class="tile" id="t-assets"></section>
+  <section class="tile" id="t-kw"></section>
+  <section class="tile" id="t-notes"></section>`;
+
+const STAGES = ['Verification', 'Response', 'Medical', 'Reunification'];
+const STAGE_KEY = { Verification: 'ver', Response: 'res', Medical: 'med', Reunification: 'reu' };
+const STAGE_ELAPSED = { Verification: 40, Response: 190, Medical: 740, Reunification: 2465 }; // seconds since incident start (mock)
+const pad2 = n => String(n).padStart(2, '0');
+const hms = s => `${pad2(Math.floor(s / 3600))}:${pad2(Math.floor(s % 3600 / 60))}:${pad2(s % 60)}`;
+const clk = ts => new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+const ago = ts => { const s = Math.max(0, Math.round((Date.now() - ts) / 1000)); return s < 60 ? s + 's ago' : Math.floor(s / 60) + ' min ago'; };
+
+function makeIncident() {
+  const I = { multi: false, lon: -84.28, lat: 30.44, campus: 'Godby High School', loc: 'Tallahassee, FL', trigger: 'Gunshots reported — Building 1',
+    // MOCK placeholders for the alarm modal (full street address is separate from the short `loc` used elsewhere)
+    by: 'Staff', via: 'Mobile App', addr: '1000 Example Campus Dr, Tallahassee, FL 32301', floor: 'Floor 1', room: 'Cafeteria', trigTs: Date.now() };
+  // MOCK per trigger source (footer "Source:", applied by setTriggerSource() when the alarm switch turns on).
+  // Mobile App / Raptor / Centegix: a person raised it -> role in `by`. Centegix also sends an alert type + optional subtype
+  // (the two entries alternate on each Centegix run, so the no-subtype case shows too). ZeroEyes: AI detection -> camera number, no role.
+  // `type` (Raptor: a Standard Response Protocol action; ZeroEyes: what the AI detected) feeds the header trigger only.
+  // Mobile App has no type/subtype at all (a person presses a button, nothing classifies it), so the header shows its icon alone.
+  // Centegix Beacon and Centegix Mobile behave identically (same role, same type/subtype list); only the label and icon differ.
+  const centegix = { by: 'Staff', alerts: [['Campus-wide Alert', 'Lockdown'], ['Staff Alert', '']] };
+  I.srcMock = { 'Mobile App': { by: 'Staff' }, ZeroEyes: { cam: 6, type: 'Weapon detected' }, 'Centegix Beacon': centegix, 'Centegix Mobile': centegix, Raptor: { by: 'SRO', type: 'Lockdown' } };
+  I.multi = QS.get('multi') === '1';
+  const st = STAGES.includes(QS.get('stage')) ? QS.get('stage') : 'Response';
+  applyStage(I, st, st === 'Response' ? 45000 : 60000); // default: Response, 45 s in (past the reporter-summary window)
+  return I;
+}
+
+function applyStage(I, stage, sinceStageMs) {
+  const now = Date.now(), t = s => now - s * 1000;
+  I.stage = stage; I.start = now - STAGE_ELAPSED[stage] * 1000; I.stageStart = now - sinceStageMs;
+  const T = [];
+  if (stage === 'Response') T.push({ n: 1, state: 'Active', b: 1, f: 1, ts: t(20) }, { n: 2, state: 'Active', b: I.multi ? 2 : 1, f: 1, ts: t(70) });
+  if (stage === 'Medical') T.push({ n: 1, state: 'In custody', b: 1, f: 1, ts: t(300) }, { n: 2, state: 'Active', b: I.multi ? 2 : 1, f: 1, ts: t(45) });
+  if (stage === 'Reunification') T.push({ n: 1, state: 'In custody', b: 1, f: 1, ts: t(1500) }, { n: 2, state: 'In custody', b: I.multi ? 2 : 1, f: 1, ts: t(1200) });
+  I.threats = T; I.threatsNewUntil = 0; // Verification: no marker yet -> map defaults to Building 1 / Floor 1
+  I.suspect = stage === 'Verification' ? { text: 'No description yet', ts: null }
+    : { text: 'Male, 20s, dark hoodie, long gun — last seen east corridor, Building 1 / Floor 1', ts: t(35) };
+  // MOCK shared assets: one pinned hero slot + 4 secondary slots. `src`/`ts` only on provider-added assets (persistent label, never hover-only).
+  // `img` / `vid` = media file next to index.html; slots without one show the placeholder screen. Room 104 photo ties to Chris Lee's "Locked in room 104" message.
+  I.assets = { main: { name: 'Hall', src: 'ZeroEyes · Cam 6', ts: t(180), img: 'asset-hall.avif' },
+    subs: [{ name: 'Room 104', src: 'Student photo · Chris Lee', ts: t(95), img: 'asset-room104-photo.jpg' }, { name: 'Room 112', src: 'Campus camera · Cam 3', vid: 'asset-room112-cam.mp4' },
+      { name: 'Building 1 floor plan', img: 'asset-floorplan.webp' }, { name: 'Cafeteria', src: 'ZeroEyes · Cam 2', ts: t(360), img: 'asset-cafeteria.jpg' }] };
+  I.reporters = { /* currently UNUSED: nothing renders Reporter Signals after the list tile became Threat-board-only */ reasons: [
+      { label: 'In room with shooter', count: 3, b: 1, f: 1, ts: t(22) },
+      { label: 'Saw person with gun', count: 5, b: 1, f: 1, ts: t(14) },
+      { label: 'Heard gunshot', count: 9, b: 2, f: 1, ts: t(9) }],
+    third: [{ src: 'ZeroEyes', text: 'Weapon detection', b: 1, f: 1, ts: t(16) }] };
+  I.comms = { channels: [
+      { n: 'Verification', people: 12, b: { room: 3, gun: 5, shot: 2, other: 1, to: 1 } },
+      { n: 'Coordination', people: 7, b: { room: 0, gun: 2, shot: 3, other: 2, to: 0 } },
+      { n: 'Medical', people: 4, b: { room: 0, gun: 0, shot: 1, other: 2, to: 1 } }] };
+  // MOCK channel messages across all three channels: [seconds after incident start, sender, location, text, channel]. Only those already sent
+  // at this stage exist; the Keyword matches tile filters them against KEYWORDS at render time (non-matching ones are never shown).
+  const B1F1 = 'Building 1 · Floor 1', B2F1 = 'Building 2 · Floor 1';
+  I.msgs = [
+    [4, 'Mia Robinson', B1F1, 'Loud bangs, sounded like gunfire by the gym', 'Verification'],
+    [8, 'Dana Kim', B2F1, 'Everyone is out of the cafeteria', 'Coordination'],
+    [12, 'Jordan Price', B2F1, 'Man with a rifle by the gym entrance', 'Verification'],
+    [18, 'Eli Santos', 'Building 1 · Floor 2', 'Man with a gun on the second floor stairs', 'Verification'],
+    [27, 'Alicia Moreno', B1F1, 'I heard shots near the east corridor', 'Verification'],
+    [34, 'Pat Gallagher', B2F1, 'He has a weapon, black hoodie, running east', 'Verification'],
+    [55, 'Sam Torres', B1F1, 'Suspect in a dark hoodie heading to the library', 'Coordination'],
+    [80, 'Chris Lee', B1F1, 'Locked in room 104, nobody hurt', 'Verification'],
+    [120, 'Rae Williams', B2F1, 'Gun visible by the gym doors, long barrel', 'Coordination'],
+    [150, 'Grace Okafor', 'Building 1 · Floor 2', "Mrs. Patel's class is still locked in the science room, everyone is under the desks and quiet, but a teacher in the hallway said she saw a rifle near the north stairwell so we're staying put until police knock", 'Coordination'], // long: keyword mid-message
+    [160, 'Noah Bennett', 'Building 1 · Floor 2', 'Student with blood on his shirt in the stairwell', 'Medical'],
+    [210, 'Hana Sato', B1F1, 'Gunshot wound, bleeding heavily, need medics', 'Medical'],
+    [400, 'Lee Martin', B2F1, 'Shooter is in custody at door 3', 'Coordination'],
+    [700, 'Omar Diaz', B1F1, 'Two students safe, one has blood on his hands', 'Medical']
+  ].filter(m => m[0] <= STAGE_ELAPSED[stage]).map(m => ({ ts: I.start + m[0] * 1000, who: m[1], loc: m[2], text: m[3], ch: m[4] }));
+  // `batt` is pack VOLTAGE (6-cell, ~19.0-25.2 V), never percent: per the Pilot App spec it's shown as plain text, no bar/gauge.
+  // `box` = physical drone box/nest letter (A-F); `l` = radio lane. Different things, both shown on the feed. `color` = the pilot's own colour.
+  // MOCK drone lanes, modelled on the pilot-side data model — NOT a confirmed backend payload.
+  // Excluded on purpose: speed, altitude, attitude/position, heading, proximity warnings, return-to-home.
+  if (!I.lanes) I.lanes = [
+    { l: 'L1', box: 'E', pilot: 'Marcus Owens', color: '#6fb4ff', id: 'GA-101', state: 'IN FLIGHT', bf: 'B1·F1', batt: 23.1, link: 'Good', video: 'live', health: 'ok', lastTel: now },
+    { l: 'L2', box: 'B', pilot: 'Priya Nair', color: '#c792ea', id: 'GA-102', state: 'RECONNECTING', bf: 'B1·F1', batt: 21.9, link: 'Weak', video: 'frozen', health: 'warn', lastTel: now, stalls: true },
+    { l: 'L3', box: 'D', pilot: 'Tom Hughes', color: '#4dd0c8', id: 'GA-103', state: 'HOT', bf: 'B2·F1', batt: 25.2, link: 'Good', video: 'frozen', health: 'ok', lastTel: now },
+    { l: 'L4', box: 'A', pilot: 'Elena Reyes', color: '#ff9f5a', id: 'GA-104', state: 'IN FLIGHT', bf: 'B2·F1', batt: 20.8, link: 'Good', video: 'live', health: 'ok', lastTel: now }];
+}
+
+/* ---------- lane-based Drone Readiness (both states) ---------- */
+const BATT_CRIT_V = 21.0; // Pilot App spec: "below 21.0V (TBD)" is critical -> value text turns red
+const LANE_CHIP = { 'CHARGING': 'info', 'FREE': 'off', 'HOT': 'warn', 'STARTING': 'warn', 'IN FLIGHT': 'ok', 'PARKED': 'off', 'RECONNECTING': 'warn', 'CONTROL LOST': 'bad', 'OFFLINE': 'bad' };
+const laneAge = x => (Date.now() - x.lastTel) / 1000; // shared by Drone readiness rows and the drone feeds so both dim / '--' at the same moment
+const laneFloor = (x, stale) => `${x.l} · ${stale ? 'F--' : 'F' + x.bf.split('F')[1]}`; // "L1 · F1": radio lane + floor, shared by drone feeds and Drone readiness
+const bfLong = bf => bf.replace(/^B(\d+)·F(\d+)$/, 'Building $1 · Floor $2');
+function renderFeedsActive() {
+  const box = document.getElementById('t-feeds'); if (!box) return;
+  box.innerHTML = D.incident.lanes.map((x, i) => x.state === 'FREE'
+    ? `<div class="fd"><div class="screen"><div class="hd"><b class="bx">${x.box}</b><span class="free">Free · no drone</span></div></div></div>` // empty box: neutral border, nothing else exists to show
+    : `<div class="fd" data-l="${x.l}" style="--c:${x.color}"><div class="screen"><video class="vid" src="drone-feed.mp4" muted loop playsinline autoplay preload="auto" data-off="${(i * 4.15).toFixed(2)}"></video><div class="fb"><b>No signal</b><span>Feed unavailable during outage</span></div>` +
+      `<div class="hd"><b class="bx">${x.box}</b><div class="pi"><span class="pn"><i></i>${x.pilot}</span><span class="lo"></span></div></div>` +
+      `<div class="lf"></div><div class="bl"><span class="chip sm ${LANE_CHIP[x.state]}">${x.state}</span><span class="chip sm lkb"></span></div></div></div>`).join('');
+  // stagger the four feeds through the clip so the wall doesn't show one picture four times
+  const t0 = performance.now(); // target = offset + time since render, so slow loads/seeks can't collapse two feeds onto the same frame
+  box.querySelectorAll('video.vid').forEach(v => { let done = false; const go = () => { if (done || !v.duration) return; done = true; v.currentTime = (+v.dataset.off + (performance.now() - t0) / 1000) % v.duration; v.play().catch(() => {}); };
+    if (v.readyState >= 1) go(); else { v.addEventListener('loadedmetadata', go); v.addEventListener('canplay', go); } });
+  updateFeeds();
+}
+// In-place update (no re-render) so the screen animation never restarts.
+function updateFeeds() {
+  D.incident.lanes.forEach(x => {
+    const f = document.querySelector(`#t-feeds .fd[data-l="${x.l}"]`); if (!f) return;
+    const age = laneAge(x), stale = age > 5, dim = age > 3;
+    const frozen = !stale && x.video !== 'live';
+    f.classList.toggle('dim', dim); f.classList.toggle('frozen', frozen);
+    const v = f.querySelector('video.vid'); if (v) { const stop = frozen || OUTAGE; if (stop && !v.paused) v.pause(); else if (!stop && v.paused) v.play().catch(() => {}); } // frozen lane or Internet outage: picture stops
+    f.querySelector('.hd .lo').textContent = stale ? '--' : bfLong(x.bf);
+    f.querySelector('.lf').textContent = laneFloor(x, stale);
+    const set = (sel, txt, cls) => { const b = f.querySelector(sel); b.textContent = txt; b.className = 'chip sm ' + sel.slice(1) + ' ' + cls; };
+    set('.lkb', stale ? 'Link --' : 'Link ' + x.link, stale ? 'off' : x.link === 'Good' ? 'ok' : x.link === 'Weak' ? 'warn' : 'bad');
+  });
+}
+function renderDrone() {
+  const box = document.getElementById('drone'); if (!box) return;
+  const act = MODE === 'active' && D.incident;
+  const site = act ? (D.droneSites.find(x => x.campus === D.incident.campus) || D.droneSites[0]) : D.droneSites[droneIdx % D.droneSites.length];
+  const h2 = document.querySelector('#t-drone>h2'); if (h2) h2.innerHTML = 'Drone readiness'; // campus: Active -> header; default -> large in the tile body
+  // shared row, same naming as the drone feeds: box letter (bordered in the pilot's colour) · swatch + pilot (or "Docked") · lane · floor · voltage · state
+  const row = (bx, c, who, dock, lf, volt, crit, st, dim) => `<div class="lr${dim ? ' dim' : ''}"${c ? ` style="--c:${c}"` : ''}><b class="bx">${bx}</b><span class="who${dock ? ' dock' : ''}">${c ? '<i></i>' : ''}${who}</span><span class="lf">${lf}</span><span class="pc${crit ? ' crit' : ''}">${volt}</span><span class="chip sm ${LANE_CHIP[st]}">${st}</span></div>`;
+  const free = bx => `<div class="lr"><b class="bx">${bx}</b><span class="free">Free · no drone</span></div>`;
+  let rows, n;
+  const nestLine = n => `<div class="nest"><span class="chip ${n.health === 'ok' ? 'ok' : 'warn'}">${n.health === 'ok' ? 'Nest OK' : 'Check nest'}</span><span>In use <b>${n.inUse}</b> · ${n.types.map(t => t[0] + ' <b>' + t[1] + '</b>').join(' · ')} · Pending <b>${n.pending}</b></span></div>`;
+  if (!act) { // default: rotating campus, name first, then nests + drones connected (Feed & system health cell style)
+    const cell = (v, l) => `<div class="hc"><b>${v}</b><small>${l}</small></div>`;
+    box.innerHTML = `<div class="dsite"><b>${site.campus}</b><span>${site.loc}</span></div><div class="health dct">` +
+      cell(site.nests, site.nests === 1 ? 'Drone nest' : 'Drone nests') + cell(`${site.drones[0]} / ${site.drones[1]}`, 'Drones connected') + `</div>` + nestLine(site.nest);
+    return;
+  } else {
+    const L = D.incident.lanes, used = L.filter(x => x.state !== 'FREE').length;
+    n = { health: site.nest.health, inUse: used, types: [['Outdoor', 0], ['Indoor', used]], pending: 0 }; // MOCK: incident lanes are all inside buildings
+    rows = L.map(x => {
+      if (x.state === 'FREE') return free(x.box);
+      const age = laneAge(x), stale = age > 5, dim = age > 3; // dim after ~3 s with no telemetry, "--" after ~5 s
+      return row(x.box, x.color, x.pilot, false, laneFloor(x, stale), stale ? '--' : x.batt.toFixed(1) + 'V', !stale && x.batt < BATT_CRIT_V, x.state, dim);
+    });
+  }
+  box.innerHTML = `<div class="lanes">${rows.join('')}</div>` + nestLine(n);
+}
+
+/* ---------- ACTIVE renderers ---------- */
+// trigger source -> icon file next to index.html; a source without an icon shows text only
+const TRIGGER_ICON = { 'Mobile App': 'trigger-mobile-app.svg', ZeroEyes: 'trigger-zeroeyes.svg', 'Centegix Beacon': 'trigger-centegix-beacon.svg', 'Centegix Mobile': 'trigger-centegix-mobile.svg', Raptor: 'trigger-raptor.svg' };
+const TRIGGER_SOURCES = Object.keys(TRIGGER_ICON); // footer Source dropdown options, in this order
+let SRC_SEL = 'Mobile App'; // last source picked in the dropdown; a fresh alarm from the default state uses it
+let centegixRun = 0;
+function setTriggerSource(I, src) { // copies that source's mock (I.srcMock) onto the incident: via, role, camera, type/subtype
+  const m = I.srcMock[src] || {}, a = m.alerts ? m.alerts[centegixRun++ % m.alerts.length] : null;
+  I.via = src; I.by = m.by || null; I.cam = m.cam || null;
+  I.type = a ? a[0] : m.type || null; I.subtype = a ? a[1] : ''; // ONE pair per incident: the header trigger and the Centegix modal line both read it
+}
+const typeText = I => I.type ? I.type + (I.subtype ? ' · ' + I.subtype : '') : ''; // "type · subtype", or type alone
+// what triggered the alarm: source icon (name kept only as alt text) + type/subtype, never the source name.
+// Mobile App has no type, so icon only. A source with no icon file and no type falls back to its name (not hit by the 4 current sources).
+const trgHtml = I => { const ic = TRIGGER_ICON[I.via], tx = typeText(I);
+  return `<div class="trg">${ic ? `<img src="${ic}" alt="${I.via}">` : ''}${tx ? `<b>${tx}</b>` : ic ? '' : `<b>${I.via}</b>`}</div>`; };
+const stageBadgeActive = I => `<span class="chip st-${STAGE_KEY[I.stage]}">${I.stage}<b id="dur">${hms(Math.floor((Date.now() - I.start) / 1000))}</b></span>`; // duration inside the badge
+function incHeader(I) { // header, between the weather and the stage badge: | campus (full address) | trigger source |
+  return `<i class="dv"></i><div class="inc"><b>${I.campus}</b><span class="ad"><i>${I.addr}</i></span></div><i class="dv"></i>${trgHtml(I)}<i class="dv"></i>`;
+}
+
+let droneIdx = 0; // which campus's nest is showing in default state
+// Campus list card: next disconnected campus (only when 2+ are down), same 9 s + fade as Drone readiness
+function rotateList(){
+  const card = document.getElementById('list-card'), dis = disList(); listShownAt = Date.now(); if (MODE !== 'default' || !card || dis.length < 2) return; // every tick opens a new 9 s window, even when nothing rotates
+  const i = dis.findIndex(c => c.name === listCur); listCur = dis[(i + 1) % dis.length].name; listShownAt = Date.now(); renderList();
+  card.classList.remove('fade'); void card.offsetWidth; card.classList.add('fade');
+}
+function renderListActive() {
+  const I = D.incident, tile = document.getElementById('t-list'); if (!tile) return;
+  // Threat Status Board is the only thing this tile shows, at every stage. (Reporter Signals Summary was removed; I.reporters in
+  // applyStage() is now unused mock data, kept in case Reporter Signals returns in some other form.)
+  // Verification: I.threats is empty -> "No threats marked yet". (Suspect info moved to the Shared assets zone.)
+  // Called every second (tickActive): the rows are rebuilt for fresh ago() text, but the h2 is built once, so the corner badge never restarts.
+  if (!tile.querySelector('#tb')) tile.innerHTML = `<h2>Threat status <span class="meta"></span></h2><div id="tb"></div>`;
+  setMeta(tile.querySelector('.meta'), I.threatsNewUntil > Date.now() ? UPD_BADGE : `${I.threats.length} marked`);
+  tile.querySelector('#tb').innerHTML = I.threats.length ? I.threats.map(t => `<div class="tr"><div class="w"><b>Threat_${t.n}</b><small>Building ${t.b} · Floor ${t.f} · ${ago(t.ts)}</small></div><span class="chip ${t.state === 'Active' ? 'bad' : 'ok'}">${t.state}</span></div>`).join('') : `<div class="tr none">No threats marked yet</div>`;
+}
+// Shared update cue (Suspect information, Threat status): red outline pulse + "Updated" badge in the h2 corner for UPD_MS.
+const UPD_MS = 5000, UPD_BADGE = '<i class="chip sm bad upd-chip">Updated</i>'; // <i>, not <span>: .tile>h2 span would restyle the chip
+function pulseTile(tile) { if (!tile) return; tile.classList.remove('upd'); void tile.offsetWidth; tile.classList.add('upd'); } // restart the outline pulse
+function setMeta(el, html) { if (el && el.dataset.k !== html) { el.dataset.k = html; el.innerHTML = html; } } // touch the DOM only on change, so the fade-in plays once per swap
+
+// Shared assets (read-only mirror). FUTURE WORK, not omissions: slot-eviction animation, drag/reorder, delete controls,
+// upload / loading / failed states and any editing are intentionally not built, like every other Active tile.
+function renderAssetsActive() {
+  const I = D.incident, A = I.assets, tile = document.getElementById('t-assets'); if (!tile) return;
+  const lab = a => a.ts ? `<span data-ts="${a.ts}" data-pre="${a.src} · ">${a.src} · ${ago(a.ts)}</span>` : a.src ? `<span>${a.src}</span>` : '';
+  const med = a => a.vid ? `<video class="med" src="${a.vid}" muted loop playsinline autoplay preload="auto"></video>` : a.img ? `<img class="med" src="${a.img}" alt="">` : '';
+  const slot = (a, main) => `<div class="screen${main ? ' main' : ''}">${med(a)}<div class="fb"><b>No signal</b><span>Feed unavailable during outage</span></div><div class="ah"><b>${a.name}</b>${lab(a)}</div></div>`;
+  tile.innerHTML = `<h2>Shared assets</h2><div class="ag">${slot(A.main, true)}${A.subs.map(a => slot(a, false)).join('')}</div>`;
+}
+function renderSuspectActive() {
+  const S = D.incident.suspect, tile = document.getElementById('t-suspect'); if (!tile) return;
+  const isNew = S.newUntil > Date.now(); // "Updated" badge replaces the time for UPD_MS after an update; any re-render keeps / drops it correctly
+  tile.innerHTML = `<h2>Suspect information <span class="meta">${isNew ? UPD_BADGE : S.ts ? `<span data-ts="${S.ts}" data-pre="updated ">updated ${ago(S.ts)}</span>` : ''}</span></h2>` +
+    (S.ts ? `<p class="sp">${S.text}</p>` : `<p class="sp none">${S.text}</p>`);
+}
+// MOCK suspect updates (Active demo): every 25 s the description moves to the next sighting; texts match the Keyword matches messages.
+const SUSPECT_SIGHTINGS = [
+  'Male, 20s, dark hoodie, long gun — last seen east corridor, Building 1 / Floor 1',
+  'Male, 20s, dark hoodie, long gun — on the second floor stairs, Building 1 / Floor 2',
+  'Male, 20s, dark hoodie, long gun — heading to the library, Building 1 / Floor 2'
+];
+// no updates during an internet outage (the tile is dimmed as stale) or in Reunification (both threats are in custody)
+const suspectLive = () => MODE === 'active' && D.incident && !OUTAGE && D.incident.stage !== 'Reunification';
+function updateSuspect() {
+  const I = D.incident; if (!I) return;
+  const now = Date.now(), next = SUSPECT_SIGHTINGS[(SUSPECT_SIGHTINGS.indexOf(I.suspect.text) + 1) % SUSPECT_SIGHTINGS.length]; // "No description yet" -> first sighting
+  I.suspect = { text: next, ts: now, newUntil: now + UPD_MS };
+  renderSuspectActive(); pulseTile(document.getElementById('t-suspect'));
+}
+function tickSuspect() { // once the badge's 5 s are up, re-render: the corner goes back to "updated Xs ago"
+  const S = D.incident && D.incident.suspect;
+  if (document.querySelector('#t-suspect .upd-chip') && !(S && S.newUntil > Date.now())) renderSuspectActive();
+}
+// MOCK threat updates (Active demo): the first Active threat moves between Floor 1 and Floor 2 of its building (ties to the suspect's
+// "second floor stairs" sighting). Only while a threat is Active (Response, Medical) and the internet is up.
+const threatsLive = () => MODE === 'active' && D.incident && !OUTAGE && D.incident.threats.some(t => t.state === 'Active');
+function updateThreats() {
+  const I = D.incident, t = I && I.threats.find(x => x.state === 'Active'); if (!t) return;
+  const now = Date.now(); t.f = t.f === 1 ? 2 : 1; t.ts = now; I.threatsNewUntil = now + UPD_MS;
+  renderListActive(); pulseTile(document.getElementById('t-list'));
+}
+// In-place ago() refresh so the hero animation never restarts.
+function tickAssets() { document.querySelectorAll('#t-assets [data-ts], #t-suspect [data-ts]').forEach(e => { e.textContent = e.dataset.pre + ago(+e.dataset.ts); }); }
+
+const NEWS_HTML = '<h2>Local news <span>Channel 4 Live</span></h2><div class="screen" id="news"><video class="vid" src="news-active.mp4" muted loop playsinline autoplay preload="auto"></video><div class="mt">&#128263; Muted</div><div class="fb"><b>No signal</b><span>Check the source in TOC settings</span></div></div>';
+function renderNewsActive() {
+  document.getElementById('t-news').innerHTML = NEWS_HTML; // same Local news tile as default
+}
+
+// OPEN QUESTION (undecided): should Comms channel activity get outage emphasis in the active state like default's Independent Comms does? Left unstyled for now.
+function renderStatsActive() {
+  const C = D.incident.comms, cols = [['room', 'In room'], ['gun', 'Saw gun'], ['shot', 'Heard shot']]; // threat statuses only (Other / Timeout stay in the data, not shown)
+  // header row: blank corner + one head per channel; then one row per answer with a figure per channel
+  document.getElementById('t-stats').innerHTML = `<h2>Channel stats</h2><div id="stats-body">` +
+    `<div class="sh"></div>` + C.channels.map(c => `<div class="sh">${c.n}<span>${c.people} people</span></div>`).join('') +
+    cols.map(([k, l]) => `<div class="sl">${l}</div>` + C.channels.map(c => `<div class="sv${c.b[k] ? '' : ' z'}">${c.b[k]}</div>`).join('')).join('') + `</div>`;
+}
+
+// Keyword watchlist: threat / safety terms only. Longest first so "gunshot" wins over "gun".
+const KEYWORDS = ['gun', 'gunshot', 'gunfire', 'shots', 'rifle', 'weapon', 'blood', 'suspect', 'killer', 'shooter', 'shooting', 'bullets'].sort((a, b) => b.length - a.length);
+const KW_RE = new RegExp('\\b(' + KEYWORDS.join('|') + ')\\b', 'gi');
+function renderKwActive() {
+  const hits = D.incident.msgs.filter(m => { KW_RE.lastIndex = 0; return KW_RE.test(m.text); }).sort((a, b) => b.ts - a.ts).slice(0, 10);
+  // keep the keyword on screen: if it starts past what fits in the column, show a snippet from a few words before it ("…saw a [rifle] near…"); CSS still cuts the end
+  const snip = t => { KW_RE.lastIndex = 0; const k = KW_RE.exec(t); if (!k || k.index <= 20) return t; const from = t.lastIndexOf(' ', k.index - 12); return '…' + t.slice(from + 1); };
+  document.getElementById('t-kw').innerHTML = `<h2>Keyword matches</h2><div id="kw-body">` +
+    (hits.length ? hits.map(m => `<div class="kr"><time>${clk(m.ts)}</time><span class="m">${snip(m.text).replace(KW_RE, '<mark>$1</mark>')}</span><span class="chn">${m.ch}</span><span class="sn">${m.who}</span><span class="loc">${m.loc}</span></div>`).join('') : `<div class="kn">No keyword matches yet</div>`) + `</div>`;
+}
+
+// Caution notes: the 5 note types and their icon files (next to index.html, same <img> convention as TRIGGER_ICON). Alt text = type name.
+const CAUTION_TYPE = {
+  glass: ['Storm / hurricane glass', 'caution-glass.svg'],
+  doors: ['Doors without windows', 'caution-doors.svg'],
+  transom: ['Transom windows', 'caution-transom.svg'],
+  sro: ['SRO / security / marshal on site', 'caution-sro.svg'],
+  other: ['Other', 'caution-other.svg']
+};
+// Read-only, scoped to the incident campus, up to 8 notes. Rendered once per Active render; auto-scrolls only if taller than the tile.
+function renderNotesActive() {
+  const tile = document.getElementById('t-notes'); if (!tile) return;
+  const N = QS.get('notes') === '0' ? [] : (D.caution[D.incident.campus] || []).slice(0, 8);
+  if (!N.length) { tile.innerHTML = `<h2>Caution notes</h2><div id="notes-body" class="autoscroll still"><div class="kn">No caution notes for this campus</div></div>`; return; } // empty state never scrolls
+  tile.innerHTML = `<h2>Caution notes</h2><div id="notes-body" class="autoscroll"><div id="notes-inner"></div></div>`;
+  const rows = N.map(([k, t]) => { const ty = CAUTION_TYPE[k] || CAUTION_TYPE.other; return `<div class="cn"><img src="${ty[1]}" alt="${ty[0]}"><p>${t}</p></div>`; }).join('');
+  fillList(document.getElementById('notes-inner'), document.getElementById('notes-body'), rows); // same auto-scroll as the Campus list: still if all fit, slow loop if not
+}
+
+function renderActive() {
+  const I = D.incident;
+  grid.classList.add('act'); grid.classList.toggle('alt', ALT_LAYOUT); grid.innerHTML = SHELL_ACTIVE; incHd.innerHTML = incHeader(I);
+  incHd.hidden = false; document.getElementById('stage-badge').innerHTML = stageBadgeActive(I);
+  renderListActive(); renderReady(); renderDrone(); renderFeedsActive(); renderWx();
+  renderNewsActive(); renderStatsActive(); renderKwActive(); renderAssetsActive(); renderSuspectActive(); renderNotesActive();
+}
+
+function renderDefault() {
+  grid.classList.remove('act', 'alt'); grid.innerHTML = SHELL_DEFAULT; incHd.innerHTML = ''; incHd.hidden = true; // no incident in the header in default
+  document.getElementById('stage-badge').innerHTML = '<span class="chip ok">No active incident</span>'; // stage lives in the header instead
+  renderCaption(); renderMap(); renderReady(); renderPeer(); renderDrone(); renderSites(); renderSchedule(); renderComms(); renderRota(); renderTz(); renderWx();
+}
+
+function applyOutage() {
+  const sw = document.getElementById('net-sw'); if (sw) sw.setAttribute('aria-checked', OUTAGE);
+  const slot = document.getElementById('net-slot'); if (slot) slot.innerHTML = OUTAGE ? '<span class="chip bad" id="net-chip">Internet: Offline</span>' : '';
+  if (document.getElementById('peer')) renderPeer();
+  const n = document.getElementById('news');
+  if (n) n.classList.toggle('down', OUTAGE);
+  const nv = n && n.querySelector('video'); if (nv) { if (OUTAGE) nv.pause(); else nv.play().catch(() => {}); } // no picture while there's no signal // the No-signal panel (.fb) is static markup; CSS shows it while .down
+  // one shared dim class, three targets: Independent Comms tile (default only), map dot/cluster markers (not the tile), header incident group
+  const c = document.getElementById('t-comms'); if (c) c.classList.toggle('outage-dim', OUTAGE && MODE === 'default');
+  // Active drone feeds + Shared assets (hero and thumbnails): exactly the Local news outage state (no tile dim): the "No signal" panel (.fb) via .down
+  if (document.getElementById('t-feeds')) updateFeeds(); // pause / resume the drone video with the outage
+  document.querySelectorAll('#t-assets video').forEach(v => { if (OUTAGE) v.pause(); else v.play().catch(() => {}); }); // shared clips stop with no signal
+  document.querySelectorAll('#t-feeds .screen, #t-assets .screen').forEach(sc => sc.classList.toggle('down', OUTAGE));
+  // Active-only text tiles dimmed like Drone readiness
+  ['t-kw', 't-stats', 't-suspect'].forEach(id => { const e = document.getElementById(id); if (e) e.classList.toggle('outage-dim', OUTAGE && MODE === 'active'); });
+  // Dimmed in both states (whole tile): #t-sites = Planned sites (default only), #t-list = Campus list / Threat status
+  ['t-sites', 't-list'].forEach(id => { const e = document.getElementById(id); if (e) e.classList.toggle('outage-dim', OUTAGE); });
+  const dr = document.getElementById('t-drone'); if (dr) dr.classList.toggle('outage-dim', OUTAGE);
+  document.querySelectorAll('#map .mk').forEach(m => m.classList.toggle('outage-dim', OUTAGE));
+  incHd.classList.toggle('outage-dim', OUTAGE);
+  document.getElementById('stage-badge').classList.toggle('outage-dim', OUTAGE); // both states: stage badge (+ Active duration) in the header
+  const wx = document.getElementById('wx-strip'); if (wx) wx.classList.toggle('outage-dim', OUTAGE); // weather is internet-sourced
+  if (document.getElementById('map-refresh')) renderRefresh();
+}
+document.getElementById('net-sw').addEventListener('click', () => { OUTAGE = !OUTAGE; applyOutage(); });
+
+function renderAll(regen = true) {
+  if (regen || !D.incident) makeData();
+  MODE === 'active' ? renderActive() : renderDefault();
+  document.querySelectorAll('#demo-toggle button[data-m]').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === MODE));
+  renderStageSel(); renderFrame(); applyOutage();
+}
+function setMode(m) { cancelAlarm(); MODE = m; renderAll(false); }
+
+// Stage-colored border: active state only, wraps the grid (header stays outside). Colors mirror the stage chip colours; no transition.
+function setFooterH() { const f = document.getElementById('demo-toggle'); if (f) document.documentElement.style.setProperty('--footer-h', f.getBoundingClientRect().height + 'px'); }
+addEventListener('resize', setFooterH);
+function renderFrame() {
+  setFooterH();
+  const f = document.getElementById('stage-frame'); if (!f) return;
+  const on = MODE === 'active' && D.incident;
+  f.hidden = !on; f.className = on ? 'f-' + STAGE_KEY[D.incident.stage] : '';
+}
+
+// Visible stage selector + Source dropdown: rendered into #stage-slot / #src-slot ONLY in active mode (nothing exists in the DOM in default).
+function renderStageSel() {
+  const slot = document.getElementById('stage-slot'), src = document.getElementById('src-slot'), on = MODE === 'active' && D.incident;
+  if (slot) slot.innerHTML = !on ? '' :
+    `<div class="seg" role="group" aria-label="Incident stage">${STAGES.map(s => `<button type="button" data-stage="${s}" aria-pressed="${s === D.incident.stage}">${s}</button>`).join('')}</div>`;
+  const alt = document.getElementById('alt-slot'); // DEMO ONLY (Active): switch to the alternative Active layout
+  if (alt) alt.innerHTML = MODE !== 'active' ? '' : `<button type="button" class="sw" id="alt-sw" role="switch" aria-checked="${ALT_LAYOUT}"><span class="trk"></span>Alternative layout</button>`;
+  const sh = document.getElementById('shift-slot'); // DEMO ONLY (default state): jump Team rotation's clock to preview the handover states
+  if (sh) sh.innerHTML = MODE !== 'default' ? '' :
+    `<label class="src">Shift:<select id="shift-sel">${[['live', 'Live'], ['ending', 'Ending soon'], ['waiting', 'Waiting for sign-in'], ['signed', 'Signed in']].map(([v, l]) => `<option value="${v}"${v === SHIFT_SEL ? ' selected' : ''}>${l}</option>`).join('')}</select></label>`;
+  if (src) src.innerHTML = !on ? '' :
+    `<label class="src">Source:<select id="src-sel">${TRIGGER_SOURCES.map(s => `<option${s === SRC_SEL ? ' selected' : ''}>${s}</option>`).join('')}</select></label>`;
+}
+// Shared by the V key and the stage buttons (same sinceStageMs values as before).
+function gotoStage(st) { cancelAlarm(); applyStage(D.incident, st, st === 'Response' ? 5000 : 60000); MODE = 'active'; renderAll(false); }
+
+// 1 s tick for the active state
+function tickActive() {
+  const I = D.incident, now = Date.now(); if (!I) return;
+  const d = document.getElementById('dur'); if (d) d.textContent = hms(Math.floor((now - I.start) / 1000));
+  I.lanes.forEach(x => { if (x.state === 'FREE') return; if (!x.stalls || now - x.lastTel > 12000) x.lastTel = now; }); // L2 periodically stops reporting to demo dim / "--"
+  renderListActive(); renderDrone(); updateFeeds(); tickAssets(); tickSuspect();
+}
+
+
+// ---------- demo-only "Alarm triggered" sequence: force Default -> 2 s -> modal 5 s -> Active/Verification ----------
+let alarmT1 = 0, alarmT2 = 0, alarmTick = 0;
+const IC = {
+  user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>',
+  phone: '<svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>',
+  bld: '<svg viewBox="0 0 24 24"><path d="M4 21V7l8-4 8 4v14M2 21h20M9 21v-5h6v5M9 10h.01M15 10h.01M12 10h.01"/></svg>',
+  clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  sun: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  part: '<svg viewBox="0 0 24 24"><path d="M8 3v1.5M2.5 8.5H4M4.1 4.6l1.1 1.1M12 5.2l-1 1"/><path d="M6.5 11.5a3.5 3.5 0 0 1 6.2-1.6"/><path d="M8 20h9a4 4 0 0 0 .6-7.9A5.5 5.5 0 0 0 7.3 13.4 3.3 3.3 0 0 0 8 20z"/></svg>',
+  rain: '<svg viewBox="0 0 24 24"><path d="M7 15h10a4 4 0 0 0 .6-7.9A5.5 5.5 0 0 0 7 8.4 3.3 3.3 0 0 0 7 15z"/><path d="M8 18.5l-1 2M12 18.5l-1 2M16 18.5l-1 2"/></svg>'
+};
+function setAlarmSw(on) { const b = document.getElementById('alarm-sw'); if (b) b.setAttribute('aria-checked', on); }
+function cancelAlarm() {
+  clearTimeout(alarmT1); clearTimeout(alarmT2); clearInterval(alarmTick); alarmT1 = alarmT2 = alarmTick = 0;
+  const o = document.getElementById('alarm-ov'); if (o) o.remove();
+  setAlarmSw(false);
+}
+function startAlarm() {
+  cancelAlarm(); setAlarmSw(true);
+  setTriggerSource(D.incident, SRC_SEL); // the last source picked (dropdown is hidden in default) drives the modal and the header trigger
+  if (MODE !== 'default') { MODE = 'default'; renderAll(false); }
+  alarmT1 = setTimeout(showAlarmModal, 1000);
+}
+// Modal header by source: Mobile App keeps its phone glyph; other sources show their icon file. ZeroEyes = AI detection, so no "by" role.
+function almHead(I) {
+  const ic = I.via === 'Mobile App' ? IC.phone : TRIGGER_ICON[I.via] ? `<img src="${TRIGGER_ICON[I.via]}" alt="">` : '';
+  const who = I.via === 'ZeroEyes'
+    ? `<div class="alm-w"><span class="alm-b">${ic}ZeroEyes</span>detected threat on<span class="alm-b">Camera #${I.cam}</span></div>`
+    : `<div class="alm-w">by<span class="alm-b">${IC.user}${I.by}</span>via<span class="alm-b">${ic}${I.via}</span></div>`;
+  const type = I.via.startsWith('Centegix') && I.type ? `<div class="alm-ty">${typeText(I)}</div>` : ''; // Centegix Beacon / Mobile only: same type/subtype as the header trigger
+  return `<b class="alm-t">Alarm triggered</b>${who}${type}`;
+}
+// Source dropdown (Active only): swaps the current incident's source and re-renders the header trigger straight away; no alarm sequence.
+// Alternative layout switch (Active only): flips the grid's area map in place (no re-render, so the feeds and videos keep playing) and re-fits Caution notes.
+document.getElementById('alt-slot').addEventListener('click', e => {
+  const b = e.target.closest('#alt-sw'); if (!b || MODE !== 'active') return;
+  ALT_LAYOUT = !ALT_LAYOUT; b.setAttribute('aria-checked', ALT_LAYOUT);
+  document.getElementById('grid').classList.toggle('alt', ALT_LAYOUT); renderNotesActive();
+});
+// Shift dropdown (default only): moves Team rotation's clock to just before / after the next real shift boundary; from there it runs on normally.
+document.getElementById('shift-slot').addEventListener('change', e => {
+  if (e.target.id !== 'shift-sel') return;
+  SHIFT_SEL = e.target.value; const now = Date.now(), boundary = now - slotElapsed(new Date(now)) + SHIFT_MS; // next scheduled change (real clock)
+  const at = { ending: boundary - 12.5 * 60000, waiting: boundary + 30000, signed: boundary + LOGIN_DELAY + 5000 }[SHIFT_SEL];
+  ROTA_OFF = at ? at - now : 0; rotaSlot = -1; renderRota(); renderBrand();
+});
+document.getElementById('src-slot').addEventListener('change', e => {
+  const I = D.incident; if (!I || e.target.id !== 'src-sel' || MODE !== 'active') return;
+  SRC_SEL = e.target.value; setTriggerSource(I, SRC_SEL);
+  incHd.innerHTML = incHeader(I);
+});
+function showAlarmModal() {
+  const I = D.incident; I.trigTs = Date.now();
+  const o = document.createElement('div'); o.id = 'alarm-ov'; o.setAttribute('role', 'alertdialog'); o.setAttribute('aria-label', 'Alarm triggered');
+  const hms = new Date(I.trigTs).toLocaleTimeString('en-GB', { hour12: false });
+  o.innerHTML = `<div class="alm">
+    <div class="alm-h">${almHead(I)}</div>
+    <div class="alm-c"><div class="alm-bld">${IC.bld}<div><b>${I.campus}<i>·</i>${I.floor}</b><span>${I.addr}</span></div></div>
+      <div class="alm-bx"><div><small>Location</small><b>${I.room}</b></div>
+      <div><small>Triggered</small><div class="ck">${IC.clock}<b>${hms}</b></div></div></div></div></div>`;
+  document.body.appendChild(o);
+  alarmT2 = setTimeout(() => { cancelAlarm(); gotoStage('Verification'); }, 5000);
+}
+document.getElementById('alarm-sw').addEventListener('click', () => {
+  document.getElementById('alarm-sw').getAttribute('aria-checked') === 'true' ? cancelAlarm() : startAlarm();
+});
+
+renderAll(); renderBrand(); scrollList();
+setInterval(() => { renderClock(); renderBrand(); if (MODE === 'active') tickActive(); else { renderTz(); renderRota(); renderSchedule(); } }, 1000);
+setInterval(() => { if (MODE === 'default') demoDrift(); }, 15000);
+setInterval(() => { if (suspectLive()) updateSuspect(); }, 25000); // DEMO ONLY: mock suspect description updates in Active
+setTimeout(() => setInterval(() => { if (threatsLive()) updateThreats(); }, 25000), 12500); // DEMO ONLY: mock threat updates, offset 12.5 s from the suspect ones
+setInterval(() => { if (MODE === 'default') renderCaption(); }, 60000); // refresh time + disconnected durations
+
+// rotate which campus's drone nest is shown (default state only) — same ~9 s cadence as the Planned Sites slot
+setInterval(() => { const b = document.getElementById('drone'); if (MODE === 'default' && b && D.droneSites.length > 1) { droneIdx = (droneIdx + 1) % D.droneSites.length; renderDrone(); b.classList.remove('fade'); void b.offsetWidth; b.classList.add('fade'); } }, 9000);
+setInterval(rotateList, 9000);
+
+// No hotkeys: the footer controls are the only interactive elements in the prototype.
+document.querySelectorAll('#demo-toggle button[data-m]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.m)));
+document.getElementById('stage-slot').addEventListener('click', e => { const b = e.target.closest('button[data-stage]'); if (b && D.incident) gotoStage(b.dataset.stage); });
+</script>
+</body>
+</html>
